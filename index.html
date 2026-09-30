@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Оценка дизайна плитки</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --border:#e3e6ea;
+    --text:#1a1f27; --muted:#67707a; --accent:#1565C0;
+    --accent-soft:#e3f0ff; --ok:#2E7D32;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:0 16px 80px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+    background:var(--bg); color:var(--text);
+  }
+  header{max-width:1200px;margin:0 auto;padding:28px 0 8px;text-align:center}
+  header h1{margin:0 0 6px;font-size:26px}
+  header p{margin:0;color:var(--muted);font-size:14px}
+
+  main{max-width:1200px;margin:0 auto}
+
+  .brand{margin-top:36px}
+  .brand h2{
+    font-size:18px; letter-spacing:.5px; text-transform:uppercase;
+    color:#0B3D2E; border-bottom:2px solid #0B3D2E; padding-bottom:6px;
+  }
+  .collection{margin-top:18px}
+  .collection h3{
+    font-size:14px; font-weight:600; color:#1F4E79;
+    margin:14px 0 8px;
+  }
+  .grid{
+    display:grid; gap:16px;
+    grid-template-columns:repeat(2,1fr);
+  }
+  @media(max-width:720px){ .grid{grid-template-columns:1fr} }
+
+  .tile{
+    background:var(--card); border:1px solid var(--border);
+    border-radius:12px; padding:12px;
+    display:flex; flex-direction:column;
+  }
+  .tile-label{
+    font-size:12px; color:var(--muted); margin-bottom:6px;
+    display:flex; justify-content:space-between;
+  }
+  .tile-label .done{color:var(--ok);font-weight:600}
+
+  .tile-image{
+    width:100%; aspect-ratio:4/3; background:#eef0f3; border-radius:8px;
+    overflow:hidden; display:flex; align-items:center; justify-content:center;
+  }
+  .tile-image img{width:100%;height:100%;object-fit:cover;display:block}
+  .tile-image .noimg{font-size:12px;color:#b00}
+
+  .q-title{
+    font-size:13px; font-weight:600; margin:12px 0 6px;
+  }
+  .scale{display:flex;gap:6px}
+  .scale button{
+    flex:1; aspect-ratio:1.6/1; border-radius:8px;
+    border:1.5px solid var(--border); background:#fff;
+    font-size:15px; font-weight:600; color:var(--text);
+    cursor:pointer; transition:.15s;
+  }
+  .scale button:hover{border-color:var(--accent);color:var(--accent)}
+  .scale button.active{
+    background:var(--accent); color:#fff; border-color:var(--accent);
+  }
+
+  .submit-wrap{
+    position:fixed; left:0; right:0; bottom:0;
+    background:rgba(255,255,255,.95);
+    backdrop-filter:blur(6px);
+    border-top:1px solid var(--border);
+    padding:12px 16px;
+    display:flex; justify-content:center; gap:12px; align-items:center;
+    z-index:10;
+  }
+  #progress{font-size:14px;color:var(--muted)}
+  #submit{
+    padding:11px 26px; border:0; border-radius:10px;
+    background:var(--accent); color:#fff; font-size:15px; font-weight:600;
+    cursor:pointer;
+  }
+  #submit:disabled{opacity:.4;cursor:not-allowed}
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.55);
+    display:none; align-items:center; justify-content:center; z-index:100;
+  }
+  .overlay.show{display:flex}
+  .modal{
+    background:#fff; padding:32px 40px; border-radius:14px;
+    text-align:center; max-width:400px;
+  }
+  .modal h2{margin:0 0 8px}
+  .modal p{margin:0;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Оценка дизайна плитки</h1>
+  <p>Оцените каждый артикул по двум шкалам: <b>розница</b> и <b>опт</b> (1 — не понравилось, 5 — очень понравилось).</p>
+</header>
+
+<main id="form"></main>
+
+<div class="submit-wrap">
+  <span id="progress">Оценено: 0 из 0</span>
+  <button id="submit" disabled>Отправить</button>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>Спасибо!</h2>
+    <p>Ваши оценки сохранены.</p>
+  </div>
+</div>
+
+<!-- URL опубликованного Google Apps Script (см. шаг 3) -->
+<script>
+  window.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwG3gWQPUhcRwhcJyFO_edAK1hBdFfohMidcyly-riZwe-PJPB-cWBAngMToZQ7h5J42Q/exec";
+</script>
+<script src="tiles.js"></script>
+<script>
+(function(){
+  const TILES = window.TILES || [];
+  const SCRIPT_URL = window.SCRIPT_URL;
+
+  // Хранилище оценок: { tileId: { retail: n|null, opt: n|null } }
+  const votes = {};
+  TILES.forEach(t => votes[t.id] = { retail: null, opt: null });
+
+  // --- сортировка по ABC, как в PDF ---
+  function abcOrder(s){
+    s = (s||"").trim().toUpperCase();
+    if (s === "1" || s === "A") return 0;
+    if (s === "2" || s === "B") return 1;
+    if (s === "3" || s === "C") return 2;
+    if (s === "") return 99;
+    return 5;
+  }
+  function abcCmp(a, b){
+    const oa = abcOrder(a.abc), ob = abcOrder(b.abc);
+    if (oa !== ob) return oa - ob;
+    return (a.abc||"").localeCompare(b.abc||"");
+  }
+
+  // --- рендер одного тайла ---
+  function makeTile(tile, localLabel){
+    const el = document.createElement("div");
+    el.className = "tile";
+    el.dataset.id = tile.id;
+
+    const imgHtml = tile.image
+      ? `<img src="${tile.image}" alt="" loading="lazy">`
+      : `<span class="noimg">[нет фото]</span>`;
+
+    el.innerHTML = `
+      <div class="tile-label">
+        <span>Артикул ${localLabel}</span>
+        <span class="done" data-done></span>
+      </div>
+      <div class="tile-image">${imgHtml}</div>
+      <div class="q-title">Оцените для розницы</div>
+      <div class="scale" data-type="retail">
+        ${[1,2,3,4,5].map(n=>`<button type="button" data-v="${n}">${n}</button>`).join("")}
+      </div>
+      <div class="q-title">Оцените для ОПТа</div>
+      <div class="scale" data-type="opt">
+        ${[1,2,3,4,5].map(n=>`<button type="button" data-v="${n}">${n}</button>`).join("")}
+      </div>
+    `;
+
+    el.querySelectorAll(".scale").forEach(scaleEl=>{
+      const type = scaleEl.dataset.type;
+      scaleEl.addEventListener("click", e=>{
+        const btn = e.target.closest("button[data-v]");
+        if(!btn) return;
+        scaleEl.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+        votes[tile.id][type] = Number(btn.dataset.v);
+        updateTileDone(el, tile.id);
+        updateProgress();
+      });
+    });
+    return el;
+  }
+
+  function updateTileDone(el, id){
+    const v = votes[id];
+    const done = v.retail !== null && v.opt !== null;
+    const lbl = el.querySelector("[data-done]");
+    lbl.textContent = done ? "✓" : "";
+  }
+
+  function updateProgress(){
+    const total = TILES.length;
+    const done = Object.values(votes).filter(v => v.retail !== null && v.opt !== null).length;
+    document.getElementById("progress").textContent = `Оценено: ${done} из ${total}`;
+    document.getElementById("submit").disabled = done === 0;
+  }
+
+  // --- рендер всей формы ---
+  function render(){
+    const root = document.getElementById("form");
+    root.innerHTML = "";
+
+    // группируем по бренду, сохраняя порядок
+    const brandOrder = [];
+    const brandMap = new Map();
+    TILES.forEach(t=>{
+      if(!brandMap.has(t.brand)){ brandMap.set(t.brand, []); brandOrder.push(t.brand); }
+      brandMap.get(t.brand).push(t);
+    });
+
+    brandOrder.forEach(brand=>{
+      const list = brandMap.get(brand);
+      const section = document.createElement("section");
+      section.className = "brand";
+      section.innerHTML = `<h2>${escapeHtml(brand)}</h2>`;
+
+      const withAbc = list.filter(t=>t.abc && t.abc.trim() !== "").sort(abcCmp);
+      const noAbc   = list.filter(t=>!t.abc || t.abc.trim() === "");
+
+      let localCounter = 0;
+
+      // 1) сначала — с ABC-рейтингом
+      if (withAbc.length){
+        const grid = document.createElement("div");
+        grid.className = "grid";
+        withAbc.forEach(t=>{
+          localCounter++;
+          grid.appendChild(makeTile(t, localCounter));
+        });
+        section.appendChild(grid);
+      }
+
+      // 2) потом — без ABC, сгруппированные по коллекциям
+      const collOrder = [];
+      const collMap = new Map();
+      noAbc.forEach(t=>{
+        const c = t.collection || "Без коллекции";
+        if(!collMap.has(c)){ collMap.set(c, []); collOrder.push(c); }
+        collMap.get(c).push(t);
+      });
+
+      collOrder.forEach(coll=>{
+        const items = collMap.get(coll)
+          .slice()
+          .sort((a,b)=> (b.recs||0) - (a.recs||0)); // recs тут нет, но сохраним порядок как в Excel
+
+        const wrap = document.createElement("div");
+        wrap.className = "collection";
+        wrap.innerHTML = `<h3>${escapeHtml(coll)}</h3>`;
+        const grid = document.createElement("div");
+        grid.className = "grid";
+        items.forEach(t=>{
+          localCounter++;
+          grid.appendChild(makeTile(t, localCounter));
+        });
+        wrap.appendChild(grid);
+        section.appendChild(wrap);
+      });
+
+      root.appendChild(section);
+    });
+
+    updateProgress();
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+  }
+
+  // --- отправка ---
+  document.getElementById("submit").addEventListener("click", async ()=>{
+    const btn = document.getElementById("submit");
+    btn.disabled = true;
+    btn.textContent = "Отправляем…";
+
+    // только оценённые полностью или частично
+    const payloadVotes = [];
+    const payloadTiles = {};
+    Object.keys(votes).forEach(id=>{
+      const v = votes[id];
+      if (v.retail === null && v.opt === null) return;
+      payloadVotes.push({ id, retail: v.retail, opt: v.opt });
+      const t = TILES.find(x=>x.id === id);
+      payloadTiles[id] = { name: t.name, brand: t.brand, collection: t.collection };
+    });
+
+    const body = JSON.stringify({
+      votes: payloadVotes,
+      tiles: payloadTiles,
+      ts: new Date().toISOString()
+    });
+
+    try{
+      // text/plain — чтобы не было CORS preflight
+      await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body
+      });
+      document.getElementById("overlay").classList.add("show");
+    }catch(err){
+      alert("Ошибка отправки. Проверьте интернет и повторите.");
+      btn.disabled = false;
+      btn.textContent = "Отправить";
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
