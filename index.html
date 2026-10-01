@@ -9,10 +9,11 @@
     --bg:#f5f6f8; --card:#fff; --border:#e3e6ea;
     --text:#1a1f27; --muted:#67707a; --accent:#1565C0;
     --accent-soft:#e3f0ff; --ok:#2E7D32;
+    --s1:#E53935; --s2:#FB8C00; --s3:#FDD835; --s4:#7CB342; --s5:#2E7D32;
   }
   *{box-sizing:border-box}
   body{
-    margin:0; padding:0 16px 80px;
+    margin:0; padding:0 16px 100px;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
     background:var(--bg); color:var(--text);
   }
@@ -42,70 +43,162 @@
     background:var(--card); border:1px solid var(--border);
     border-radius:12px; padding:12px;
     display:flex; flex-direction:column;
+    transition:border-color .2s;
   }
+  .tile.complete{border-color:var(--ok)}
   .tile-label{
     font-size:12px; color:var(--muted); margin-bottom:6px;
-    display:flex; justify-content:space-between;
+    display:flex; justify-content:space-between; align-items:center;
   }
   .tile-label .done{color:var(--ok);font-weight:600}
 
+  /* ---- картинка: целиком видна ---- */
   .tile-image{
-    width:100%; aspect-ratio:4/3; background:#eef0f3; border-radius:8px;
+    width:100%; aspect-ratio:4/3;
+    background:#f0f2f5; border-radius:8px;
     overflow:hidden; display:flex; align-items:center; justify-content:center;
+    cursor:zoom-in; position:relative;
   }
-  .tile-image img{width:100%;height:100%;object-fit:cover;display:block}
+  .tile-image img{
+    max-width:100%; max-height:100%;
+    width:auto; height:auto;
+    object-fit:contain;
+    display:block;
+    transition:transform .2s;
+  }
+  .tile-image:hover img{ transform:scale(1.03); }
+  .tile-image::after{
+    content:"🔍";
+    position:absolute; right:8px; bottom:8px;
+    width:30px; height:30px; border-radius:50%;
+    background:rgba(0,0,0,.55); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; opacity:0; transition:opacity .2s;
+    pointer-events:none;
+  }
+  .tile-image:hover::after{ opacity:1; }
   .tile-image .noimg{font-size:12px;color:#b00}
 
-  .q-title{
-    font-size:13px; font-weight:600; margin:12px 0 6px;
+  /* ---- шкала ---- */
+  .q-block{margin-top:14px}
+  .q-head{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom:6px;
   }
+  .q-title{ font-size:13px; font-weight:600; }
+  .q-hint{ font-size:11px; color:var(--muted); }
   .scale{display:flex;gap:6px}
   .scale button{
-    flex:1; aspect-ratio:1.6/1; border-radius:8px;
+    flex:1; min-height:52px; border-radius:8px;
     border:1.5px solid var(--border); background:#fff;
-    font-size:15px; font-weight:600; color:var(--text);
     cursor:pointer; transition:.15s;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:4px 2px; gap:2px;
+    font-family:inherit;
   }
-  .scale button:hover{border-color:var(--accent);color:var(--accent)}
-  .scale button.active{
-    background:var(--accent); color:#fff; border-color:var(--accent);
+  .scale button .num{
+    font-size:16px; font-weight:700; color:var(--text);
   }
+  .scale button .lbl{
+    font-size:9px; font-weight:500; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.2px;
+    line-height:1.05; text-align:center;
+  }
+  .scale button:hover{
+    border-color:var(--accent);
+    transform:translateY(-1px);
+  }
+  .scale button:hover .num{color:var(--accent)}
+  .scale button.active .num{color:#fff}
+  .scale button.active .lbl{color:rgba(255,255,255,.9)}
+  /* активные цвета 1..5 */
+  .scale button[data-v="1"].active{ background:var(--s1); border-color:var(--s1); }
+  .scale button[data-v="2"].active{ background:var(--s2); border-color:var(--s2); }
+  .scale button[data-v="3"].active{ background:var(--s3); border-color:var(--s3); }
+  .scale button[data-v="3"].active .num{color:#1a1f27}
+  .scale button[data-v="3"].active .lbl{color:rgba(0,0,0,.7)}
+  .scale button[data-v="4"].active{ background:var(--s4); border-color:var(--s4); }
+  .scale button[data-v="5"].active{ background:var(--s5); border-color:var(--s5); }
 
+  /* ---- нижняя панель ---- */
   .submit-wrap{
     position:fixed; left:0; right:0; bottom:0;
-    background:rgba(255,255,255,.95);
+    background:rgba(255,255,255,.96);
     backdrop-filter:blur(6px);
     border-top:1px solid var(--border);
     padding:12px 16px;
-    display:flex; justify-content:center; gap:12px; align-items:center;
-    z-index:10;
+    display:flex; justify-content:center; gap:16px; align-items:center;
+    z-index:10; flex-wrap:wrap;
   }
   #progress{font-size:14px;color:var(--muted)}
   #submit{
     padding:11px 26px; border:0; border-radius:10px;
     background:var(--accent); color:#fff; font-size:15px; font-weight:600;
-    cursor:pointer;
+    cursor:pointer; transition:.15s;
   }
+  #submit:hover:not(:disabled){ background:#0d47a1; }
   #submit:disabled{opacity:.4;cursor:not-allowed}
 
+  /* ---- модалка успеха ---- */
   .overlay{
-    position:fixed; inset:0; background:rgba(0,0,0,.55);
+    position:fixed; inset:0; background:rgba(0,0,0,.6);
     display:none; align-items:center; justify-content:center; z-index:100;
+    padding:16px;
   }
-  .overlay.show{display:flex}
+  .overlay.show{display:flex; animation:fadeIn .2s}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   .modal{
-    background:#fff; padding:32px 40px; border-radius:14px;
-    text-align:center; max-width:400px;
+    background:#fff; padding:36px 40px 30px; border-radius:16px;
+    text-align:center; max-width:420px; width:100%;
+    animation:pop .3s cubic-bezier(.2,.9,.3,1.2);
   }
-  .modal h2{margin:0 0 8px}
-  .modal p{margin:0;color:var(--muted)}
+  @keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal .check{
+    width:72px; height:72px; border-radius:50%;
+    background:var(--ok); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:40px; margin:0 auto 18px;
+  }
+  .modal h2{margin:0 0 10px;font-size:22px}
+  .modal p{margin:0 0 20px; color:var(--muted); font-size:15px; line-height:1.5}
+  .modal button{
+    padding:11px 30px; border:0; border-radius:10px;
+    background:var(--accent); color:#fff; font-size:15px; font-weight:600;
+    cursor:pointer;
+  }
+  .modal button:hover{ background:#0d47a1; }
+
+  /* ---- lightbox ---- */
+  .lightbox{
+    position:fixed; inset:0; background:rgba(0,0,0,.92);
+    display:none; align-items:center; justify-content:center; z-index:200;
+    cursor:zoom-out; padding:24px;
+  }
+  .lightbox.show{display:flex; animation:fadeIn .2s}
+  .lightbox img{
+    max-width:100%; max-height:100%;
+    object-fit:contain;
+    border-radius:6px;
+    box-shadow:0 10px 40px rgba(0,0,0,.6);
+  }
+  .lightbox .close{
+    position:absolute; top:16px; right:20px;
+    width:44px; height:44px; border-radius:50%;
+    background:rgba(255,255,255,.15); color:#fff;
+    border:0; font-size:24px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .lightbox .close:hover{ background:rgba(255,255,255,.3); }
 </style>
 </head>
 <body>
 
 <header>
   <h1>Оценка дизайна плитки</h1>
-  <p>Оцените каждый артикул по двум шкалам: <b>розница</b> и <b>опт</b> (1 — не понравилось, 5 — очень понравилось).</p>
+  <p>
+    Оцените каждый артикул по двум шкалам: <b>розница</b> и <b>опт</b>.<br>
+    <b>1 — очень плохо</b>, <b>5 — отлично</b>. Клик по фото — увеличить.
+  </p>
 </header>
 
 <main id="form"></main>
@@ -115,16 +208,25 @@
   <button id="submit" disabled>Отправить</button>
 </div>
 
-<div class="overlay" id="overlay">
+<!-- модалка успеха -->
+<div class="overlay" id="successOverlay">
   <div class="modal">
-    <h2>Спасибо!</h2>
-    <p>Ваши оценки сохранены.</p>
+    <div class="check">✓</div>
+    <h2>Спасибо за участие!</h2>
+    <p id="successText">Ваши оценки сохранены.</p>
+    <button id="successClose">Готово</button>
   </div>
 </div>
 
-<!-- URL опубликованного Google Apps Script (см. шаг 3) -->
+<!-- lightbox -->
+<div class="lightbox" id="lightbox">
+  <button class="close" id="lightboxClose">×</button>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<!-- URL опубликованного Google Apps Script -->
 <script>
-  window.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzlvD4UeTFVTF1pFPGsLLLurO4lnOIQr5RLoqQCueeEiL_UQfWf9up1VPrEgzswFeRM7g/exec";
+  window.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwG3gWQPUhcRwhcJyFO_edAK1hBdFfohMidcyly-riZwe-PJPB-cWBAngMToZQ7h5J42Q/exec";
 </script>
 <script src="tiles.js"></script>
 <script>
@@ -132,11 +234,19 @@
   const TILES = window.TILES || [];
   const SCRIPT_URL = window.SCRIPT_URL;
 
-  // Хранилище оценок: { tileId: { retail: n|null, opt: n|null } }
   const votes = {};
   TILES.forEach(t => votes[t.id] = { retail: null, opt: null });
 
-  // --- сортировка по ABC, как в PDF ---
+  // ==== подписи для шкалы ====
+  const LABELS = {
+    1: "Очень плохо",
+    2: "Плохо",
+    3: "Средне",
+    4: "Хорошо",
+    5: "Отлично"
+  };
+
+  // ==== сортировка ABC ====
   function abcOrder(s){
     s = (s||"").trim().toUpperCase();
     if (s === "1" || s === "A") return 0;
@@ -151,7 +261,28 @@
     return (a.abc||"").localeCompare(b.abc||"");
   }
 
-  // --- рендер одного тайла ---
+  // ==== светбокс (zoom) ====
+  const lightbox    = document.getElementById("lightbox");
+  const lightboxImg = document.getElementById("lightboxImg");
+
+  function openLightbox(src){
+    if (!src) return;
+    lightboxImg.src = src;
+    lightbox.classList.add("show");
+  }
+  function closeLightbox(){
+    lightbox.classList.remove("show");
+    lightboxImg.src = "";
+  }
+  document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
+  lightbox.addEventListener("click", (e)=>{
+    if (e.target === lightbox) closeLightbox();
+  });
+  document.addEventListener("keydown", (e)=>{
+    if (e.key === "Escape") closeLightbox();
+  });
+
+  // ==== карточка тайла ====
   function makeTile(tile, localLabel){
     const el = document.createElement("div");
     el.className = "tile";
@@ -166,17 +297,46 @@
         <span>Артикул ${localLabel}</span>
         <span class="done" data-done></span>
       </div>
-      <div class="tile-image">${imgHtml}</div>
-      <div class="q-title">Оцените для розницы</div>
-      <div class="scale" data-type="retail">
-        ${[1,2,3,4,5].map(n=>`<button type="button" data-v="${n}">${n}</button>`).join("")}
+      <div class="tile-image" data-zoom>${imgHtml}</div>
+
+      <div class="q-block">
+        <div class="q-head">
+          <span class="q-title">Оцените для розницы</span>
+          <span class="q-hint">1 — плохо, 5 — отлично</span>
+        </div>
+        <div class="scale" data-type="retail">
+          ${[1,2,3,4,5].map(n=>`
+            <button type="button" data-v="${n}" title="${LABELS[n]}">
+              <span class="num">${n}</span>
+              <span class="lbl">${LABELS[n]}</span>
+            </button>
+          `).join("")}
+        </div>
       </div>
-      <div class="q-title">Оцените для ОПТа</div>
-      <div class="scale" data-type="opt">
-        ${[1,2,3,4,5].map(n=>`<button type="button" data-v="${n}">${n}</button>`).join("")}
+
+      <div class="q-block">
+        <div class="q-head">
+          <span class="q-title">Оцените для ОПТа</span>
+          <span class="q-hint">1 — плохо, 5 — отлично</span>
+        </div>
+        <div class="scale" data-type="opt">
+          ${[1,2,3,4,5].map(n=>`
+            <button type="button" data-v="${n}" title="${LABELS[n]}">
+              <span class="num">${n}</span>
+              <span class="lbl">${LABELS[n]}</span>
+            </button>
+          `).join("")}
+        </div>
       </div>
     `;
 
+    // клик по фото — увеличить
+    const zoomEl = el.querySelector("[data-zoom]");
+    if (tile.image){
+      zoomEl.addEventListener("click", ()=> openLightbox(tile.image));
+    }
+
+    // клики по шкалам
     el.querySelectorAll(".scale").forEach(scaleEl=>{
       const type = scaleEl.dataset.type;
       scaleEl.addEventListener("click", e=>{
@@ -189,14 +349,16 @@
         updateProgress();
       });
     });
+
     return el;
   }
 
   function updateTileDone(el, id){
     const v = votes[id];
     const done = v.retail !== null && v.opt !== null;
+    el.classList.toggle("complete", done);
     const lbl = el.querySelector("[data-done]");
-    lbl.textContent = done ? "✓" : "";
+    lbl.textContent = done ? "✓ готово" : "";
   }
 
   function updateProgress(){
@@ -206,12 +368,11 @@
     document.getElementById("submit").disabled = done === 0;
   }
 
-  // --- рендер всей формы ---
+  // ==== рендер всей формы ====
   function render(){
     const root = document.getElementById("form");
     root.innerHTML = "";
 
-    // группируем по бренду, сохраняя порядок
     const brandOrder = [];
     const brandMap = new Map();
     TILES.forEach(t=>{
@@ -230,7 +391,6 @@
 
       let localCounter = 0;
 
-      // 1) сначала — с ABC-рейтингом
       if (withAbc.length){
         const grid = document.createElement("div");
         grid.className = "grid";
@@ -241,7 +401,6 @@
         section.appendChild(grid);
       }
 
-      // 2) потом — без ABC, сгруппированные по коллекциям
       const collOrder = [];
       const collMap = new Map();
       noAbc.forEach(t=>{
@@ -251,9 +410,7 @@
       });
 
       collOrder.forEach(coll=>{
-        const items = collMap.get(coll)
-          .slice()
-          .sort((a,b)=> (b.recs||0) - (a.recs||0)); // recs тут нет, но сохраним порядок как в Excel
+        const items = collMap.get(coll).slice();
 
         const wrap = document.createElement("div");
         wrap.className = "collection";
@@ -278,18 +435,20 @@
     return String(s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
   }
 
-  // --- отправка ---
+  // ==== отправка ====
   document.getElementById("submit").addEventListener("click", async ()=>{
     const btn = document.getElementById("submit");
     btn.disabled = true;
     btn.textContent = "Отправляем…";
 
-    // только оценённые полностью или частично
     const payloadVotes = [];
     const payloadTiles = {};
+    let doneCount = 0;
+
     Object.keys(votes).forEach(id=>{
       const v = votes[id];
       if (v.retail === null && v.opt === null) return;
+      if (v.retail !== null && v.opt !== null) doneCount++;
       payloadVotes.push({ id, retail: v.retail, opt: v.opt });
       const t = TILES.find(x=>x.id === id);
       payloadTiles[id] = { name: t.name, brand: t.brand, collection: t.collection };
@@ -302,18 +461,35 @@
     });
 
     try{
-      // text/plain — чтобы не было CORS preflight
       await fetch(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body
       });
-      document.getElementById("overlay").classList.add("show");
+
+      // показываем модалку успеха
+      document.getElementById("successText").textContent =
+        `Вы оценили ${doneCount} ${plural(doneCount, ["артикул","артикула","артикулов"])}. Спасибо!`;
+      document.getElementById("successOverlay").classList.add("show");
+
     }catch(err){
-      alert("Ошибка отправки. Проверьте интернет и повторите.");
+      alert("Не удалось отправить. Проверьте интернет и попробуйте снова.");
       btn.disabled = false;
       btn.textContent = "Отправить";
     }
+  });
+
+  function plural(n, forms){
+    const a = Math.abs(n) % 100;
+    const b = a % 10;
+    if (a > 10 && a < 20) return forms[2];
+    if (b > 1 && b < 5) return forms[1];
+    if (b === 1) return forms[0];
+    return forms[2];
+  }
+
+  document.getElementById("successClose").addEventListener("click", ()=>{
+    document.getElementById("successOverlay").classList.remove("show");
   });
 
   render();
