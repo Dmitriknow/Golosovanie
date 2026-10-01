@@ -269,7 +269,7 @@
 </div>
 
 <script>
-  // ⚠️ Вставьте сюда URL вашего развёртывания (заканчивается на /exec)
+  // ⚠️ Вставьте сюда URL вашего развёртывания Google Apps Script (заканчивается на /exec)
   window.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQp0-DdX4gcUtBaTEB2vQ1rURiCFKu_fKZPViscXJakXmCJ_fA4wmGbrTIQixD8bJKUg/exec";
 </script>
 <script src="tiles.js"></script>
@@ -532,7 +532,16 @@
     return String(s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
   }
 
-  // ===== отправка (mode: no-cors) =====
+  function plural(n, forms){
+    const a = Math.abs(n) % 100;
+    const b = a % 10;
+    if (a > 10 && a < 20) return forms[2];
+    if (b > 1 && b < 5) return forms[1];
+    if (b === 1) return forms[0];
+    return forms[2];
+  }
+
+  // ===== отправка =====
   document.getElementById("submit").addEventListener("click", async ()=>{
     const btn = document.getElementById("submit");
     btn.disabled = true;
@@ -560,42 +569,32 @@
       ts: new Date().toISOString()
     });
 
-// Отправляем данные через sendBeacon — он не ждёт ответа,
-// поэтому никаких CORS-ошибок быть не может.
-let sent = false;
-try {
-  const blob = new Blob([body], { type: "text/plain;charset=utf-8" });
-  sent = navigator.sendBeacon(SCRIPT_URL, blob);
-} catch (e) {
-  sent = false;
-}
+    // отправляем через sendBeacon (не ждёт ответа, не бывает CORS-ошибок)
+    let sent = false;
+    try {
+      const blob = new Blob([body], { type: "text/plain;charset=utf-8" });
+      sent = navigator.sendBeacon(SCRIPT_URL, blob);
+    } catch (e) {
+      sent = false;
+    }
 
-// sendBeacon вернул false — например, данных слишком много или браузер не поддерживает.
-// Тогда используем резервный способ.
-if (!sent) {
-  try {
-    await fetch(SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      body
-    }).catch(() => {});   // игнорируем ошибку — данные уже ушли
-  } catch (e) { /* ничего */ }
-}
+    // резервный путь — fetch в режиме no-cors
+    if (!sent) {
+      try {
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          body
+        }).catch(() => {});
+      } catch (e) { /* ничего */ }
+    }
 
-const favWord = plural(favoritesArr.length, ["фаворит","фаворита","фаворитов"]);
-document.getElementById("successText").textContent =
-  `Вы оценили ${doneCount} ${plural(doneCount, ["артикул","артикула","артикулов"])} ` +
-  `и выбрали ${favoritesArr.length} ${favWord}. Спасибо!`;
-document.getElementById("successOverlay").classList.add("show");
-
-  function plural(n, forms){
-    const a = Math.abs(n) % 100;
-    const b = a % 10;
-    if (a > 10 && a < 20) return forms[2];
-    if (b > 1 && b < 5) return forms[1];
-    if (b === 1) return forms[0];
-    return forms[2];
-  }
+    const favWord = plural(favoritesArr.length, ["фаворит","фаворита","фаворитов"]);
+    document.getElementById("successText").textContent =
+      `Вы оценили ${doneCount} ${plural(doneCount, ["артикул","артикула","артикулов"])} ` +
+      `и выбрали ${favoritesArr.length} ${favWord}. Спасибо!`;
+    document.getElementById("successOverlay").classList.add("show");
+  });
 
   document.getElementById("successClose").addEventListener("click", ()=>{
     document.getElementById("successOverlay").classList.remove("show");
