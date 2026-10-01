@@ -8,18 +8,18 @@
   :root{
     --bg:#f5f6f8; --card:#fff; --border:#e3e6ea;
     --text:#1a1f27; --muted:#67707a; --accent:#1565C0;
-    --accent-soft:#e3f0ff; --ok:#2E7D32;
+    --ok:#2E7D32; --gold:#F9A825; --gold-soft:#FFF8D6;
     --s1:#E53935; --s2:#FB8C00; --s3:#FDD835; --s4:#7CB342; --s5:#2E7D32;
   }
   *{box-sizing:border-box}
   body{
-    margin:0; padding:0 16px 100px;
+    margin:0; padding:0 16px 110px;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
     background:var(--bg); color:var(--text);
   }
   header{max-width:1200px;margin:0 auto;padding:28px 0 8px;text-align:center}
   header h1{margin:0 0 6px;font-size:26px}
-  header p{margin:0;color:var(--muted);font-size:14px}
+  header p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
 
   main{max-width:1200px;margin:0 auto}
 
@@ -39,24 +39,36 @@
   }
   @media(max-width:720px){ .grid{grid-template-columns:1fr} }
 
+  /* ---------- Карточка ---------- */
   .tile{
     background:var(--card); border:1px solid var(--border);
     border-radius:12px; padding:12px;
     display:flex; flex-direction:column;
-    transition:border-color .2s;
+    transition:border-color .2s, background .2s, box-shadow .2s;
   }
   .tile.complete{border-color:var(--ok)}
+
+  /* Жёлтая подсветка для фаворитов */
+  .tile.favorite{
+    background:var(--gold-soft);
+    border-color:var(--gold);
+    box-shadow:0 0 0 2px var(--gold), 0 4px 14px rgba(249,168,37,.25);
+  }
+
   .tile-label{
     font-size:12px; color:var(--muted); margin-bottom:6px;
     display:flex; justify-content:space-between; align-items:center;
   }
   .tile-label .done{color:var(--ok);font-weight:600}
+  .tile-label .fav-mark{
+    color:var(--gold); font-weight:700; letter-spacing:.3px;
+  }
 
-  /* ---- картинка: целиком видна ---- */
   .tile-image{
     width:100%; aspect-ratio:4/3;
     background:#f0f2f5; border-radius:8px;
-    overflow:hidden; display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
     cursor:zoom-in; position:relative;
   }
   .tile-image img{
@@ -64,9 +76,7 @@
     width:auto; height:auto;
     object-fit:contain;
     display:block;
-    transition:transform .2s;
   }
-  .tile-image:hover img{ transform:scale(1.03); }
   .tile-image::after{
     content:"🔍";
     position:absolute; right:8px; bottom:8px;
@@ -79,8 +89,39 @@
   .tile-image:hover::after{ opacity:1; }
   .tile-image .noimg{font-size:12px;color:#b00}
 
-  /* ---- шкала ---- */
-  .q-block{margin-top:14px}
+  /* ---------- Кнопка "Мой фаворит" ---------- */
+  .fav-btn{
+    margin-top:10px;
+    width:100%; padding:9px 12px;
+    border-radius:8px;
+    border:1.5px solid var(--border);
+    background:#fff; color:var(--text);
+    font-family:inherit;
+    font-size:13px; font-weight:600;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:.15s;
+  }
+  .fav-btn .crown{ font-size:16px; filter:grayscale(1); transition:.15s; }
+  .fav-btn:hover{
+    border-color:var(--gold);
+    background:#FFFBEA;
+  }
+  .fav-btn:hover .crown{ filter:grayscale(0); }
+  .fav-btn.active{
+    background:var(--gold);
+    border-color:var(--gold);
+    color:#3a2400;
+    box-shadow:0 2px 8px rgba(249,168,37,.5);
+  }
+  .fav-btn.active .crown{ filter:grayscale(0); }
+  .fav-btn:disabled{
+    cursor:not-allowed; opacity:.55;
+  }
+  .fav-btn:disabled:hover{ border-color:var(--border); background:#fff; }
+
+  /* ---------- Шкала ---------- */
+  .q-block{margin-top:12px}
   .q-head{
     display:flex; justify-content:space-between; align-items:baseline;
     margin-bottom:6px;
@@ -96,22 +137,16 @@
     padding:4px 2px; gap:2px;
     font-family:inherit;
   }
-  .scale button .num{
-    font-size:16px; font-weight:700; color:var(--text);
-  }
+  .scale button .num{ font-size:16px; font-weight:700; color:var(--text); }
   .scale button .lbl{
     font-size:9px; font-weight:500; color:var(--muted);
     text-transform:uppercase; letter-spacing:.2px;
     line-height:1.05; text-align:center;
   }
-  .scale button:hover{
-    border-color:var(--accent);
-    transform:translateY(-1px);
-  }
+  .scale button:hover{ border-color:var(--accent); transform:translateY(-1px); }
   .scale button:hover .num{color:var(--accent)}
   .scale button.active .num{color:#fff}
   .scale button.active .lbl{color:rgba(255,255,255,.9)}
-  /* активные цвета 1..5 */
   .scale button[data-v="1"].active{ background:var(--s1); border-color:var(--s1); }
   .scale button[data-v="2"].active{ background:var(--s2); border-color:var(--s2); }
   .scale button[data-v="3"].active{ background:var(--s3); border-color:var(--s3); }
@@ -120,16 +155,24 @@
   .scale button[data-v="4"].active{ background:var(--s4); border-color:var(--s4); }
   .scale button[data-v="5"].active{ background:var(--s5); border-color:var(--s5); }
 
-  /* ---- нижняя панель ---- */
+  /* ---------- Нижняя панель ---------- */
   .submit-wrap{
     position:fixed; left:0; right:0; bottom:0;
     background:rgba(255,255,255,.96);
     backdrop-filter:blur(6px);
     border-top:1px solid var(--border);
-    padding:12px 16px;
+    padding:10px 16px;
     display:flex; justify-content:center; gap:16px; align-items:center;
     z-index:10; flex-wrap:wrap;
   }
+  .fav-counter{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 12px; border-radius:20px;
+    background:#FFF8D6; color:#7a5a00;
+    font-size:13px; font-weight:600;
+    border:1px solid #F9E08A;
+  }
+  .fav-counter.full{ background:#FFE082; }
   #progress{font-size:14px;color:var(--muted)}
   #submit{
     padding:11px 26px; border:0; border-radius:10px;
@@ -139,7 +182,24 @@
   #submit:hover:not(:disabled){ background:#0d47a1; }
   #submit:disabled{opacity:.4;cursor:not-allowed}
 
-  /* ---- модалка успеха ---- */
+  /* ---------- Тост ---------- */
+  .toast{
+    position:fixed; left:50%; bottom:100px;
+    transform:translateX(-50%) translateY(20px);
+    background:#323232; color:#fff;
+    padding:12px 22px; border-radius:10px;
+    font-size:14px; font-weight:500;
+    box-shadow:0 6px 24px rgba(0,0,0,.3);
+    opacity:0; pointer-events:none;
+    transition:opacity .25s, transform .25s;
+    z-index:150;
+    max-width:90vw; text-align:center;
+  }
+  .toast.show{
+    opacity:1; transform:translateX(-50%) translateY(0);
+  }
+
+  /* ---------- Модалка успеха ---------- */
   .overlay{
     position:fixed; inset:0; background:rgba(0,0,0,.6);
     display:none; align-items:center; justify-content:center; z-index:100;
@@ -168,7 +228,7 @@
   }
   .modal button:hover{ background:#0d47a1; }
 
-  /* ---- lightbox ---- */
+  /* ---------- Lightbox ---------- */
   .lightbox{
     position:fixed; inset:0; background:rgba(0,0,0,.92);
     display:none; align-items:center; justify-content:center; z-index:200;
@@ -197,18 +257,23 @@
   <h1>Оценка дизайна плитки</h1>
   <p>
     Оцените каждый артикул по двум шкалам: <b>розница</b> и <b>опт</b>.<br>
-    <b>1 — очень плохо</b>, <b>5 — отлично</b>. Клик по фото — увеличить.
+    <b>1 — очень плохо</b>, <b>5 — отлично</b>. Клик по фото — увеличить.<br>
+    👑 Отметьте до <b>3 фаворитов</b> — они подсветятся жёлтым.
   </p>
 </header>
 
 <main id="form"></main>
 
 <div class="submit-wrap">
+  <span class="fav-counter" id="favCounter">👑 Фаворитов: 0 из 3</span>
   <span id="progress">Оценено: 0 из 0</span>
   <button id="submit" disabled>Отправить</button>
 </div>
 
-<!-- модалка успеха -->
+<!-- Тост -->
+<div class="toast" id="toast"></div>
+
+<!-- Модалка успеха -->
 <div class="overlay" id="successOverlay">
   <div class="modal">
     <div class="check">✓</div>
@@ -218,13 +283,12 @@
   </div>
 </div>
 
-<!-- lightbox -->
+<!-- Lightbox -->
 <div class="lightbox" id="lightbox">
   <button class="close" id="lightboxClose">×</button>
   <img id="lightboxImg" src="" alt="">
 </div>
 
-<!-- URL опубликованного Google Apps Script -->
 <script>
   window.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwG3gWQPUhcRwhcJyFO_edAK1hBdFfohMidcyly-riZwe-PJPB-cWBAngMToZQ7h5J42Q/exec";
 </script>
@@ -233,20 +297,26 @@
 (function(){
   const TILES = window.TILES || [];
   const SCRIPT_URL = window.SCRIPT_URL;
+  const MAX_FAV = 3;
 
   const votes = {};
   TILES.forEach(t => votes[t.id] = { retail: null, opt: null });
 
-  // ==== подписи для шкалы ====
-  const LABELS = {
-    1: "Очень плохо",
-    2: "Плохо",
-    3: "Средне",
-    4: "Хорошо",
-    5: "Отлично"
-  };
+  const favoriteIds = new Set();
 
-  // ==== сортировка ABC ====
+  const LABELS = { 1:"Очень плохо", 2:"Плохо", 3:"Средне", 4:"Хорошо", 5:"Отлично" };
+
+  // ============ Тост ============
+  const toastEl = document.getElementById("toast");
+  let toastTimer = null;
+  function showToast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> toastEl.classList.remove("show"), 2200);
+  }
+
+  // ============ Сортировка ABC ============
   function abcOrder(s){
     s = (s||"").trim().toUpperCase();
     if (s === "1" || s === "A") return 0;
@@ -261,7 +331,7 @@
     return (a.abc||"").localeCompare(b.abc||"");
   }
 
-  // ==== светбокс (zoom) ====
+  // ============ Lightbox ============
   const lightbox    = document.getElementById("lightbox");
   const lightboxImg = document.getElementById("lightboxImg");
 
@@ -275,14 +345,58 @@
     lightboxImg.src = "";
   }
   document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
-  lightbox.addEventListener("click", (e)=>{
-    if (e.target === lightbox) closeLightbox();
-  });
-  document.addEventListener("keydown", (e)=>{
-    if (e.key === "Escape") closeLightbox();
-  });
+  lightbox.addEventListener("click", (e)=>{ if (e.target === lightbox) closeLightbox(); });
+  document.addEventListener("keydown", (e)=>{ if (e.key === "Escape") closeLightbox(); });
 
-  // ==== карточка тайла ====
+  // ============ Фавориты ============
+  function updateFavCounter(){
+    const n = favoriteIds.size;
+    const el = document.getElementById("favCounter");
+    el.textContent = `👑 Фаворитов: ${n} из ${MAX_FAV}`;
+    el.classList.toggle("full", n === MAX_FAV);
+  }
+
+  function refreshAllFavButtons(){
+    document.querySelectorAll(".tile").forEach(card=>{
+      const id = card.dataset.id;
+      const isFav = favoriteIds.has(id);
+      card.classList.toggle("favorite", isFav);
+
+      const btn = card.querySelector(".fav-btn");
+      btn.classList.toggle("active", isFav);
+      btn.querySelector(".fav-text").textContent =
+        isFav ? "В фаворитах" : "Мой фаворит";
+
+      // метка сверху
+      const markEl = card.querySelector("[data-fav-mark]");
+      markEl.textContent = isFav ? "👑 ФАВОРИТ" : "";
+
+      // блокируем невыбранные кнопки, если уже 3 фаворита
+      if (!isFav && favoriteIds.size >= MAX_FAV){
+        btn.disabled = true;
+        btn.title = "Можно выбрать не более 3 фаворитов";
+      } else {
+        btn.disabled = false;
+        btn.title = "";
+      }
+    });
+  }
+
+  function toggleFavorite(id){
+    if (favoriteIds.has(id)){
+      favoriteIds.delete(id);
+    } else {
+      if (favoriteIds.size >= MAX_FAV){
+        showToast(`Можно выбрать не более ${MAX_FAV} фаворитов. Снимите корону с другого артикула.`);
+        return;
+      }
+      favoriteIds.add(id);
+    }
+    refreshAllFavButtons();
+    updateFavCounter();
+  }
+
+  // ============ Карточка ============
   function makeTile(tile, localLabel){
     const el = document.createElement("div");
     el.className = "tile";
@@ -295,9 +409,14 @@
     el.innerHTML = `
       <div class="tile-label">
         <span>Артикул ${localLabel}</span>
-        <span class="done" data-done></span>
+        <span class="fav-mark" data-fav-mark></span>
       </div>
       <div class="tile-image" data-zoom>${imgHtml}</div>
+
+      <button class="fav-btn" data-fav type="button" title="Отметить как фаворит">
+        <span class="crown">👑</span>
+        <span class="fav-text">Мой фаворит</span>
+      </button>
 
       <div class="q-block">
         <div class="q-head">
@@ -336,6 +455,11 @@
       zoomEl.addEventListener("click", ()=> openLightbox(tile.image));
     }
 
+    // клик по кнопке "Мой фаворит"
+    el.querySelector("[data-fav]").addEventListener("click", ()=>{
+      toggleFavorite(tile.id);
+    });
+
     // клики по шкалам
     el.querySelectorAll(".scale").forEach(scaleEl=>{
       const type = scaleEl.dataset.type;
@@ -357,18 +481,16 @@
     const v = votes[id];
     const done = v.retail !== null && v.opt !== null;
     el.classList.toggle("complete", done);
-    const lbl = el.querySelector("[data-done]");
-    lbl.textContent = done ? "✓ готово" : "";
   }
 
   function updateProgress(){
     const total = TILES.length;
     const done = Object.values(votes).filter(v => v.retail !== null && v.opt !== null).length;
     document.getElementById("progress").textContent = `Оценено: ${done} из ${total}`;
-    document.getElementById("submit").disabled = done === 0;
+    document.getElementById("submit").disabled = done === 0 && favoriteIds.size === 0;
   }
 
-  // ==== рендер всей формы ====
+  // ============ Рендер ============
   function render(){
     const root = document.getElementById("form");
     root.innerHTML = "";
@@ -429,13 +551,15 @@
     });
 
     updateProgress();
+    updateFavCounter();
+    refreshAllFavButtons();
   }
 
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
   }
 
-  // ==== отправка ====
+  // ============ Отправка ============
   document.getElementById("submit").addEventListener("click", async ()=>{
     const btn = document.getElementById("submit");
     btn.disabled = true;
@@ -443,19 +567,23 @@
 
     const payloadVotes = [];
     const payloadTiles = {};
+    const favoritesArr = Array.from(favoriteIds);
     let doneCount = 0;
 
     Object.keys(votes).forEach(id=>{
       const v = votes[id];
-      if (v.retail === null && v.opt === null) return;
+      const isFav = favoriteIds.has(id);
+      // отправляем плитку, если есть хоть одна оценка ИЛИ она в фаворитах
+      if (v.retail === null && v.opt === null && !isFav) return;
       if (v.retail !== null && v.opt !== null) doneCount++;
-      payloadVotes.push({ id, retail: v.retail, opt: v.opt });
+      payloadVotes.push({ id, retail: v.retail, opt: v.opt, favorite: isFav });
       const t = TILES.find(x=>x.id === id);
       payloadTiles[id] = { name: t.name, brand: t.brand, collection: t.collection };
     });
 
     const body = JSON.stringify({
       votes: payloadVotes,
+      favorites: favoritesArr,
       tiles: payloadTiles,
       ts: new Date().toISOString()
     });
@@ -467,9 +595,10 @@
         body
       });
 
-      // показываем модалку успеха
+      const favWord = plural(favoritesArr.length, ["фаворит","фаворита","фаворитов"]);
       document.getElementById("successText").textContent =
-        `Вы оценили ${doneCount} ${plural(doneCount, ["артикул","артикула","артикулов"])}. Спасибо!`;
+        `Вы оценили ${doneCount} ${plural(doneCount, ["артикул","артикула","артикулов"])} ` +
+        `и выбрали ${favoritesArr.length} ${favWord}. Спасибо!`;
       document.getElementById("successOverlay").classList.add("show");
 
     }catch(err){
