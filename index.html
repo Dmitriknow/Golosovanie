@@ -560,26 +560,33 @@
       ts: new Date().toISOString()
     });
 
-    try{
-      await fetch(SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body
-      });
+// Отправляем данные через sendBeacon — он не ждёт ответа,
+// поэтому никаких CORS-ошибок быть не может.
+let sent = false;
+try {
+  const blob = new Blob([body], { type: "text/plain;charset=utf-8" });
+  sent = navigator.sendBeacon(SCRIPT_URL, blob);
+} catch (e) {
+  sent = false;
+}
 
-      const favWord = plural(favoritesArr.length, ["фаворит","фаворита","фаворитов"]);
-      document.getElementById("successText").textContent =
-        `Вы оценили ${doneCount} ${plural(doneCount, ["артикул","артикула","артикулов"])} ` +
-        `и выбрали ${favoritesArr.length} ${favWord}. Спасибо!`;
-      document.getElementById("successOverlay").classList.add("show");
+// sendBeacon вернул false — например, данных слишком много или браузер не поддерживает.
+// Тогда используем резервный способ.
+if (!sent) {
+  try {
+    await fetch(SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      body
+    }).catch(() => {});   // игнорируем ошибку — данные уже ушли
+  } catch (e) { /* ничего */ }
+}
 
-    }catch(err){
-      alert("Не удалось отправить. Проверьте интернет и попробуйте снова.");
-      btn.disabled = false;
-      btn.textContent = "Отправить";
-    }
-  });
+const favWord = plural(favoritesArr.length, ["фаворит","фаворита","фаворитов"]);
+document.getElementById("successText").textContent =
+  `Вы оценили ${doneCount} ${plural(doneCount, ["артикул","артикула","артикулов"])} ` +
+  `и выбрали ${favoritesArr.length} ${favWord}. Спасибо!`;
+document.getElementById("successOverlay").classList.add("show");
 
   function plural(n, forms){
     const a = Math.abs(n) % 100;
