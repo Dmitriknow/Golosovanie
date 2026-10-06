@@ -165,7 +165,6 @@
   .scale button[data-v="4"].active{ background:var(--s4); border-color:var(--s4); }
   .scale button[data-v="5"].active{ background:var(--s5); border-color:var(--s5); }
 
-  /* поиск и навигация */
   .toolbar{
     max-width:1200px; margin:18px auto 0;
     display:flex; gap:12px; flex-wrap:wrap; align-items:center;
@@ -352,17 +351,89 @@
 </div>
 
 <script>
-  // ⚠️ Вставьте сюда URL вашего развёртывания Google Apps Script (заканчивается на /exec)
+  // ⚠️ URL вашего Apps Script для приёма ответов
   window.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz6Dd_y6nd8J1GmT4hcuEql1STHDNqYSeSZscD5WzZTDhCIBLdfHjKy28kdt_wvrP81/exec";
 </script>
+
+<!-- Данные по плиткам -->
 <script src="tiles.js"></script>
+
+<!-- ============================================================
+     ЗАГРУЗЧИК ФОТО ИЗ ПУБЛИЧНЫХ ПАПОК ЯНДЕКС.ДИСКА
+     Работает по официальному публичному API:
+     https://yandex.ru/dev/disk/api/reference/public.html
+     ============================================================ -->
+<script>
+(function(){
+  const API = "https://cloud-api.yandex.net/v1/disk/public/resources";
+  const cache = new Map();
+
+  // Разбираем ссылку вида
+  //   https://disk.yandex.com.am/d/PUBLIC_KEY/путь/внутри/папки
+  // на базовый ключ и путь внутри публикации.
+  function parse(url){
+    const m = String(url || "").match(/^(https?:\/\/[^\/]+\/d\/[^\/?#]+)(?:\/([^?#]*))?/);
+    if (!m) return null;
+    let p = m[2] ? decodeURIComponent(m[2]) : "";
+    p = p.replace(/^\/+|\/+$/g, "");
+    return { base: m[1], path: p ? "/" + p : "/" };
+  }
+
+  async function fetchFolder(folderUrl){
+    const p = parse(folderUrl);
+    if (!p) return [];
+    const api = API
+      + "?public_key=" + encodeURIComponent(p.base)
+      + "&path="       + encodeURIComponent(p.path)
+      + "&limit=200&sort=name&preview_size=XXL";
+    const r = await fetch(api);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    const items = (j._embedded && j._embedded.items) || [];
+    return items
+      .filter(it => it.type === "file"
+        && (it.media_type === "image"
+            || /\.(jpe?g|png|webp|gif|bmp)$/i.test(it.name || "")))
+      .map(it => it.preview || it.file)
+      .filter(Boolean);
+  }
+
+  // Ограничиваем параллелизм, чтобы Яндекс не отдавал 429 Too Many Requests
+  let active = 0;
+  const queue = [];
+  function pump(){
+    while (active < 2 && queue.length){
+      const t = queue.shift();
+      active++;
+      t.run().then(t.resolve, t.reject).finally(()=>{ active--; pump(); });
+    }
+  }
+  function enqueue(run){
+    return new Promise((resolve, reject)=>{ queue.push({run, resolve, reject}); pump(); });
+  }
+
+  window.YD_LOADER = {
+    load(folderUrl){
+      if (!folderUrl) return Promise.resolve([]);
+      if (cache.has(folderUrl)) return cache.get(folderUrl);
+      const pr = enqueue(()=>fetchFolder(folderUrl))
+        .catch(e => { console.warn("Yandex load failed:", folderUrl, e); return []; });
+      cache.set(folderUrl, pr);
+      return pr;
+    }
+  };
+})();
+</script>
+
+<!-- ============================================================
+     ОСНОВНОЙ СКРИПТ ГОЛОСОВАЛКИ
+     ============================================================ -->
 <script>
 (function(){
   const TILES = window.TILES || [];
   const SCRIPT_URL = window.SCRIPT_URL;
   const MAX_FAV = 3;
 
-  // Варианты подписи шкалы — как в Excel-опроснике
   const LABELS = {
     1:"не нравится", 2:"скорее нет", 3:"нейтрально", 4:"нравится", 5:"очень нравится"
   };
@@ -372,18 +443,10 @@
   const favoriteIds = new Set();
 
   // ===== нормализация ссылок на фото =====
-  // tiles.js может содержать либо одну строку (image), либо массив (images)
   function imageList(t){
     if (Array.isArray(t.images) && t.images.length) return t.images.filter(Boolean);
     if (typeof t.image === "string" && t.image.trim()) return [t.image.trim()];
     return [];
-  }
-  // Яндекс.Диск: ссылка вида /i/<id> отдаёт фото в полном размере через размер=orig
-  function fullSize(url){
-    if (!url) return url;
-    if (url.indexOf("yadi.sk") === -1 && url.indexOf("disk.yandex") === -1) return url;
-    const base = url.split("?")[0];
-    return base + "?size=orig";
   }
 
   // ===== тост =====
@@ -506,7 +569,7 @@
       imgHtml = `<img src="${escapeHtml(first)}" alt="${escapeHtml(tile.name)}" loading="lazy">` +
                 (imgs.length > 1 ? `<span class="photo-count">${imgs.length} фото</span>` : "");
     } else if (link){
-      imgHtml = `<span class="noimg" style="color:var(--muted)">[ссылка на фото]</span>`;
+      imgHtml = `<span class="noimg" style="color:var(--muted)">Загрузка фото…</span>`;
     } else {
       imgHtml = `<span class="noimg">[нет фото]</span>`;
     }
@@ -558,8 +621,25 @@
     const zoomEl = el.querySelector("[data-zoom]");
     if (imgs.length || link){
       zoomEl.addEventListener("click", ()=>{
-        if (imgs.length) openLightbox(imgs, tile.name + " — " + tile.collection, link);
-        else window.open(link, "_blank", "noopener");
+        // tile.images мог быть дозаполнен асинхронно — читаем актуальное значение
+        const current = (Array.isArray(tile.images) && tile.images.length) ? tile.images : imgs;
+        if (current.length) openLightbox(current, tile.name + " — " + tile.collection, link);
+        else if (link)      window.open(link, "_blank", "noopener");
+      });
+    }
+
+    // Асинхронно подтягиваем фото из публичной папки Яндекс.Диска
+    if (!first && link && window.YD_LOADER){
+      window.YD_LOADER.load(link).then(urls=>{
+        if (!urls.length){
+          zoomEl.innerHTML = `<span class="noimg">[фото недоступны]</span>`;
+          zoomEl.classList.add("nolink");
+          return;
+        }
+        tile.images = urls;
+        zoomEl.innerHTML =
+          `<img src="${escapeHtml(urls[0])}" alt="${escapeHtml(tile.name)}" loading="lazy">` +
+          (urls.length > 1 ? `<span class="photo-count">${urls.length} фото</span>` : "");
       });
     }
 
@@ -754,7 +834,6 @@
       ts: new Date().toISOString()
     });
 
-    // отправляем через sendBeacon (не ждёт ответа, не бывает CORS-ошибок)
     let sent = false;
     try {
       const blob = new Blob([body], { type: "text/plain;charset=utf-8" });
@@ -763,7 +842,6 @@
       sent = false;
     }
 
-    // резервный путь — fetch в режиме no-cors
     if (!sent) {
       try {
         await fetch(SCRIPT_URL, { method:"POST", mode:"no-cors", body }).catch(()=>{});
