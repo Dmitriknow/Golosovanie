@@ -344,7 +344,7 @@
   <div class="cap" id="lightboxCap"></div>
   <button class="close" id="lightboxClose">×</button>
   <button class="nav prev" id="lightboxPrev">‹</button>
-  <img id="lightboxImg" src="" alt="">
+  <img id="lightboxImg" src="" alt="" referrerpolicy="no-referrer">
   <button class="nav next" id="lightboxNext">›</button>
   <span class="counter" id="lightboxCounter"></span>
   <a class="ext" id="lightboxExt" href="#" target="_blank" rel="noopener">Все фото →</a>
@@ -368,9 +368,6 @@
   const API = "https://cloud-api.yandex.net/v1/disk/public/resources";
   const cache = new Map();
 
-  // Разбираем ссылку вида
-  //   https://disk.yandex.com.am/d/PUBLIC_KEY/путь/внутри/папки
-  // на базовый ключ и путь внутри публикации.
   function parse(url){
     const m = String(url || "").match(/^(https?:\/\/[^\/]+\/d\/[^\/?#]+)(?:\/([^?#]*))?/);
     if (!m) return null;
@@ -394,7 +391,8 @@
       .filter(it => it.type === "file"
         && (it.media_type === "image"
             || /\.(jpe?g|png|webp|gif|bmp)$/i.test(it.name || "")))
-      .map(it => it.preview || it.file)
+      // file = прямая ссылка на оригинал, не защищена referer-политикой
+      .map(it => it.file || it.preview)
       .filter(Boolean);
   }
 
@@ -566,7 +564,8 @@
 
     let imgHtml;
     if (first){
-      imgHtml = `<img src="${escapeHtml(first)}" alt="${escapeHtml(tile.name)}" loading="lazy">` +
+      imgHtml = `<img src="${escapeHtml(first)}" alt="${escapeHtml(tile.name)}"
+                      loading="lazy" referrerpolicy="no-referrer">` +
                 (imgs.length > 1 ? `<span class="photo-count">${imgs.length} фото</span>` : "");
     } else if (link){
       imgHtml = `<span class="noimg" style="color:var(--muted)">Загрузка фото…</span>`;
@@ -621,7 +620,6 @@
     const zoomEl = el.querySelector("[data-zoom]");
     if (imgs.length || link){
       zoomEl.addEventListener("click", ()=>{
-        // tile.images мог быть дозаполнен асинхронно — читаем актуальное значение
         const current = (Array.isArray(tile.images) && tile.images.length) ? tile.images : imgs;
         if (current.length) openLightbox(current, tile.name + " — " + tile.collection, link);
         else if (link)      window.open(link, "_blank", "noopener");
@@ -638,7 +636,8 @@
         }
         tile.images = urls;
         zoomEl.innerHTML =
-          `<img src="${escapeHtml(urls[0])}" alt="${escapeHtml(tile.name)}" loading="lazy">` +
+          `<img src="${escapeHtml(urls[0])}" alt="${escapeHtml(tile.name)}"
+                loading="lazy" referrerpolicy="no-referrer">` +
           (urls.length > 1 ? `<span class="photo-count">${urls.length} фото</span>` : "");
       });
     }
