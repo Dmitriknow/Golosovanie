@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Новинки Gresse — оценка дизайнов</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --border:#e3e6ea;
+    --text:#1a1f27; --muted:#67707a; --accent:#1565C0;
+    --ok:#2E7D32; --gold:#F9A825; --gold-soft:#FFF8D6;
+    --s1:#E53935; --s2:#FB8C00; --s3:#FDD835; --s4:#7CB342; --s5:#2E7D32;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:0 16px 120px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+    background:var(--bg); color:var(--text);
+  }
+  header{max-width:1200px;margin:0 auto;padding:28px 0 8px;text-align:center}
+  header h1{margin:0 0 6px;font-size:26px}
+  header p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+
+  main{max-width:1200px;margin:0 auto}
+
+  .brand{margin-top:36px}
+  .brand > h2{
+    font-size:18px; letter-spacing:.5px; text-transform:uppercase;
+    color:#0B3D2E; border-bottom:2px solid #0B3D2E; padding-bottom:6px;
+  }
+  .collection{margin-top:18px}
+  .collection h3{
+    font-size:14px; font-weight:600; color:#1F4E79;
+    margin:14px 0 8px;
+  }
+  .grid{
+    display:grid; gap:16px;
+    grid-template-columns:repeat(3,1fr);
+  }
+  @media(max-width:1000px){ .grid{grid-template-columns:repeat(2,1fr)} }
+  @media(max-width:720px){ .grid{grid-template-columns:1fr} }
+
+  .tile{
+    background:var(--card); border:1px solid var(--border);
+    border-radius:12px; padding:12px;
+    display:flex; flex-direction:column;
+    transition:border-color .2s, background .2s, box-shadow .2s;
+  }
+  .tile.complete{border-color:var(--ok)}
+
+  .tile.favorite{
+    background:var(--gold-soft);
+    border-color:var(--gold);
+    box-shadow:0 0 0 2px var(--gold), 0 4px 14px rgba(249,168,37,.25);
+  }
+
+  .tile-label{
+    font-size:12px; color:var(--muted); margin-bottom:6px;
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+  }
+  .tile-label .tname{
+    font-weight:600; color:var(--text); font-size:13px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .tile-label .fav-mark{ color:var(--gold); font-weight:700; letter-spacing:.3px; white-space:nowrap; }
+
+  .tile-image{
+    width:100%; aspect-ratio:4/3;
+    background:#f0f2f5; border-radius:8px;
+    overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    cursor:zoom-in; position:relative;
+  }
+  .tile-image.nolink{cursor:default}
+  .tile-image img{
+    max-width:100%; max-height:100%;
+    width:auto; height:auto;
+    object-fit:contain;
+    display:block;
+  }
+  .tile-image::after{
+    content:"🔍";
+    position:absolute; right:8px; bottom:8px;
+    width:30px; height:30px; border-radius:50%;
+    background:rgba(0,0,0,.55); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; opacity:0; transition:opacity .2s;
+    pointer-events:none;
+  }
+  .tile-image:hover::after{ opacity:1; }
+  .tile-image.nolink::after{ content:none; }
+  .tile-image .noimg{font-size:12px;color:#b00}
+
+  .photo-count{
+    position:absolute; left:8px; top:8px;
+    background:rgba(0,0,0,.6); color:#fff;
+    font-size:11px; font-weight:600;
+    padding:3px 8px; border-radius:20px;
+    pointer-events:none;
+  }
+
+  .gallery-link{
+    display:block; margin-top:6px; text-align:center;
+    font-size:11px; color:var(--accent); text-decoration:none;
+    font-weight:600;
+  }
+  .gallery-link:hover{ text-decoration:underline; }
+
+  .fav-btn{
+    margin-top:10px;
+    width:100%; padding:9px 12px;
+    border-radius:8px;
+    border:1.5px solid var(--border);
+    background:#fff; color:var(--text);
+    font-family:inherit;
+    font-size:13px; font-weight:600;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:.15s;
+  }
+  .fav-btn .crown{ font-size:16px; filter:grayscale(1); transition:.15s; }
+  .fav-btn:hover{ border-color:var(--gold); background:#FFFBEA; }
+  .fav-btn:hover .crown{ filter:grayscale(0); }
+  .fav-btn.active{
+    background:var(--gold);
+    border-color:var(--gold);
+    color:#3a2400;
+    box-shadow:0 2px 8px rgba(249,168,37,.5);
+  }
+  .fav-btn.active .crown{ filter:grayscale(0); }
+  .fav-btn:disabled{ cursor:not-allowed; opacity:.55; }
+  .fav-btn:disabled:hover{ border-color:var(--border); background:#fff; }
+
+  .q-block{margin-top:12px}
+  .q-head{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom:6px;
+  }
+  .q-title{ font-size:13px; font-weight:600; }
+  .q-hint{ font-size:11px; color:var(--muted); }
+  .scale{display:flex;gap:6px}
+  .scale button{
+    flex:1; min-height:54px; border-radius:8px;
+    border:1.5px solid var(--border); background:#fff;
+    cursor:pointer; transition:.15s;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:4px 2px; gap:2px;
+    font-family:inherit;
+  }
+  .scale button .num{ font-size:16px; font-weight:700; color:var(--text); }
+  .scale button .lbl{
+    font-size:9px; font-weight:500; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.2px;
+    line-height:1.05; text-align:center;
+  }
+  .scale button:hover{ border-color:var(--accent); transform:translateY(-1px); }
+  .scale button:hover .num{color:var(--accent)}
+  .scale button.active .num{color:#fff}
+  .scale button.active .lbl{color:rgba(255,255,255,.9)}
+  .scale button[data-v="1"].active{ background:var(--s1); border-color:var(--s1); }
+  .scale button[data-v="2"].active{ background:var(--s2); border-color:var(--s2); }
+  .scale button[data-v="3"].active{ background:var(--s3); border-color:var(--s3); }
+  .scale button[data-v="3"].active .num{color:#1a1f27}
+  .scale button[data-v="3"].active .lbl{color:rgba(0,0,0,.7)}
+  .scale button[data-v="4"].active{ background:var(--s4); border-color:var(--s4); }
+  .scale button[data-v="5"].active{ background:var(--s5); border-color:var(--s5); }
+
+  /* поиск и навигация */
+  .toolbar{
+    max-width:1200px; margin:18px auto 0;
+    display:flex; gap:12px; flex-wrap:wrap; align-items:center;
+    position:sticky; top:0; z-index:9;
+    background:rgba(245,246,248,.96);
+    backdrop-filter:blur(6px);
+    padding:10px 0; border-bottom:1px solid var(--border);
+  }
+  .toolbar input[type=search]{
+    flex:1; min-width:200px; padding:9px 12px;
+    border:1.5px solid var(--border); border-radius:8px;
+    font-family:inherit; font-size:14px; background:#fff;
+  }
+  .toolbar input[type=search]:focus{ outline:none; border-color:var(--accent); }
+  .chip-row{display:flex; gap:8px; flex-wrap:wrap}
+  .chip{
+    padding:7px 14px; border-radius:20px; cursor:pointer;
+    border:1.5px solid var(--border); background:#fff;
+    font-family:inherit; font-size:13px; font-weight:600; color:var(--text);
+  }
+  .chip:hover{ border-color:var(--accent); }
+  .chip.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+
+  .submit-wrap{
+    position:fixed; left:0; right:0; bottom:0;
+    background:rgba(255,255,255,.96);
+    backdrop-filter:blur(6px);
+    border-top:1px solid var(--border);
+    padding:10px 16px;
+    display:flex; justify-content:center; gap:16px; align-items:center;
+    z-index:10; flex-wrap:wrap;
+  }
+  .fav-counter{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 12px; border-radius:20px;
+    background:#FFF8D6; color:#7a5a00;
+    font-size:13px; font-weight:600;
+    border:1px solid #F9E08A;
+  }
+  .fav-counter.full{ background:#FFE082; }
+  #progress{font-size:14px;color:var(--muted)}
+  #submit{
+    padding:11px 26px; border:0; border-radius:10px;
+    background:var(--accent); color:#fff; font-size:15px; font-weight:600;
+    cursor:pointer; transition:.15s;
+  }
+  #submit:hover:not(:disabled){ background:#0d47a1; }
+  #submit:disabled{opacity:.4;cursor:not-allowed}
+
+  .toast{
+    position:fixed; left:50%; bottom:110px;
+    transform:translateX(-50%) translateY(20px);
+    background:#323232; color:#fff;
+    padding:12px 22px; border-radius:10px;
+    font-size:14px; font-weight:500;
+    box-shadow:0 6px 24px rgba(0,0,0,.3);
+    opacity:0; pointer-events:none;
+    transition:opacity .25s, transform .25s;
+    z-index:150;
+    max-width:90vw; text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.6);
+    display:none; align-items:center; justify-content:center; z-index:100;
+    padding:16px;
+  }
+  .overlay.show{display:flex; animation:fadeIn .2s}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal{
+    background:#fff; padding:36px 40px 30px; border-radius:16px;
+    text-align:center; max-width:420px; width:100%;
+    animation:pop .3s cubic-bezier(.2,.9,.3,1.2);
+  }
+  @keyframes pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal .check{
+    width:72px; height:72px; border-radius:50%;
+    background:var(--ok); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:40px; margin:0 auto 18px;
+  }
+  .modal h2{margin:0 0 10px;font-size:22px}
+  .modal p{margin:0 0 20px; color:var(--muted); font-size:15px; line-height:1.5}
+  .modal button{
+    padding:11px 30px; border:0; border-radius:10px;
+    background:var(--accent); color:#fff; font-size:15px; font-weight:600;
+    cursor:pointer;
+  }
+  .modal button:hover{ background:#0d47a1; }
+
+  .lightbox{
+    position:fixed; inset:0; background:rgba(0,0,0,.92);
+    display:none; align-items:center; justify-content:center; z-index:200;
+    padding:24px;
+  }
+  .lightbox.show{display:flex; animation:fadeIn .2s}
+  .lightbox img{
+    max-width:100%; max-height:88%;
+    object-fit:contain;
+    border-radius:6px;
+    box-shadow:0 10px 40px rgba(0,0,0,.6);
+  }
+  .lightbox .close{
+    position:absolute; top:16px; right:20px;
+    width:44px; height:44px; border-radius:50%;
+    background:rgba(255,255,255,.15); color:#fff;
+    border:0; font-size:24px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .lightbox .close:hover{ background:rgba(255,255,255,.3); }
+  .lightbox .nav{
+    position:absolute; top:50%; transform:translateY(-50%);
+    width:52px; height:52px; border-radius:50%;
+    background:rgba(255,255,255,.15); color:#fff;
+    border:0; font-size:26px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .lightbox .nav:hover{ background:rgba(255,255,255,.3); }
+  .lightbox .prev{ left:20px; }
+  .lightbox .next{ right:20px; }
+  .lightbox .counter{
+    position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+    color:#fff; font-size:14px; font-weight:600;
+    background:rgba(0,0,0,.5); padding:5px 14px; border-radius:20px;
+  }
+  .lightbox .cap{
+    position:absolute; top:22px; left:50%; transform:translateX(-50%);
+    color:#fff; font-size:15px; font-weight:600; text-align:center;
+    max-width:80vw;
+  }
+  .lightbox .ext{
+    position:absolute; bottom:20px; right:20px;
+    color:#fff; font-size:13px; font-weight:600;
+    background:rgba(255,255,255,.18); padding:7px 14px; border-radius:20px;
+    text-decoration:none;
+  }
+  .lightbox .ext:hover{ background:rgba(255,255,255,.32); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Новинки Gresse — оценка дизайнов</h1>
+  <p>
+    Оцените каждый вариант по двум шкалам: <b>розница</b> и <b>опт</b>.<br>
+    <b>1 — не нравится</b>, <b>5 — очень нравится</b>. Клик по фото — увеличить.<br>
+    👑 Отметьте до <b>3 фаворитов</b> — они подсветятся жёлтым.
+  </p>
+</header>
+
+<div class="toolbar">
+  <input type="search" id="search" placeholder="Поиск по названию, коллекции, разделу…">
+  <div class="chip-row" id="brandChips"></div>
+</div>
+
+<main id="form"></main>
+
+<div class="submit-wrap">
+  <span class="fav-counter" id="favCounter">👑 Фаворитов: 0 из 3</span>
+  <span id="progress">Оценено: 0 из 0</span>
+  <button id="submit" disabled>Отправить</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="successOverlay">
+  <div class="modal">
+    <div class="check">✓</div>
+    <h2>Спасибо за участие!</h2>
+    <p id="successText">Ваши оценки сохранены.</p>
+    <button id="successClose">Готово</button>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <div class="cap" id="lightboxCap"></div>
+  <button class="close" id="lightboxClose">×</button>
+  <button class="nav prev" id="lightboxPrev">‹</button>
+  <img id="lightboxImg" src="" alt="">
+  <button class="nav next" id="lightboxNext">›</button>
+  <span class="counter" id="lightboxCounter"></span>
+  <a class="ext" id="lightboxExt" href="#" target="_blank" rel="noopener">Все фото →</a>
+</div>
+
+<script>
+  // ⚠️ Вставьте сюда URL вашего развёртывания Google Apps Script (заканчивается на /exec)
+  window.SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz6Dd_y6nd8J1GmT4hcuEql1STHDNqYSeSZscD5WzZTDhCIBLdfHjKy28kdt_wvrP81/exec";
+</script>
+<script src="tiles.js"></script>
+<script>
+(function(){
+  const TILES = window.TILES || [];
+  const SCRIPT_URL = window.SCRIPT_URL;
+  const MAX_FAV = 3;
+
+  // Варианты подписи шкалы — как в Excel-опроснике
+  const LABELS = {
+    1:"не нравится", 2:"скорее нет", 3:"нейтрально", 4:"нравится", 5:"очень нравится"
+  };
+
+  const votes = {};
+  TILES.forEach(t => votes[t.id] = { retail: null, opt: null });
+  const favoriteIds = new Set();
+
+  // ===== нормализация ссылок на фото =====
+  // tiles.js может содержать либо одну строку (image), либо массив (images)
+  function imageList(t){
+    if (Array.isArray(t.images) && t.images.length) return t.images.filter(Boolean);
+    if (typeof t.image === "string" && t.image.trim()) return [t.image.trim()];
+    return [];
+  }
+  // Яндекс.Диск: ссылка вида /i/<id> отдаёт фото в полном размере через размер=orig
+  function fullSize(url){
+    if (!url) return url;
+    if (url.indexOf("yadi.sk") === -1 && url.indexOf("disk.yandex") === -1) return url;
+    const base = url.split("?")[0];
+    return base + "?size=orig";
+  }
+
+  // ===== тост =====
+  const toastEl = document.getElementById("toast");
+  let toastTimer = null;
+  function showToast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> toastEl.classList.remove("show"), 2400);
+  }
+
+  // ===== lightbox =====
+  const lightbox    = document.getElementById("lightbox");
+  const lightboxImg = document.getElementById("lightboxImg");
+  const lbCap       = document.getElementById("lightboxCap");
+  const lbCount     = document.getElementById("lightboxCounter");
+  const lbExt       = document.getElementById("lightboxExt");
+  let lbImages = [], lbIndex = 0, lbLink = "", lbName = "";
+
+  function paintLightbox(){
+    const src = lbImages[lbIndex];
+    lightboxImg.src = src || "";
+    lbCount.textContent = lbImages.length > 1 ? `${lbIndex+1} / ${lbImages.length}` : "";
+    document.getElementById("lightboxPrev").style.display = lbImages.length > 1 ? "flex" : "none";
+    document.getElementById("lightboxNext").style.display = lbImages.length > 1 ? "flex" : "none";
+    lbExt.style.display = lbLink ? "block" : "none";
+  }
+  function openLightbox(images, name, link){
+    lbImages = (images || []).slice();
+    if (!lbImages.length) return;
+    lbIndex = 0; lbLink = link || ""; lbName = name || "";
+    lbCap.textContent = lbName;
+    lbExt.href = lbLink || "#";
+    paintLightbox();
+    lightbox.classList.add("show");
+    document.body.style.overflow = "hidden";
+  }
+  function closeLightbox(){
+    lightbox.classList.remove("show");
+    lightboxImg.src = "";
+    document.body.style.overflow = "";
+  }
+  function stepLightbox(d){
+    if (lbImages.length < 2) return;
+    lbIndex = (lbIndex + d + lbImages.length) % lbImages.length;
+    paintLightbox();
+  }
+  document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
+  document.getElementById("lightboxPrev").addEventListener("click", e=>{ e.stopPropagation(); stepLightbox(-1); });
+  document.getElementById("lightboxNext").addEventListener("click", e=>{ e.stopPropagation(); stepLightbox(1); });
+  lightbox.addEventListener("click", e => {
+    if (e.target === lightbox || e.target === lightboxImg) closeLightbox();
+  });
+  document.addEventListener("keydown", e => {
+    if (!lightbox.classList.contains("show")) return;
+    if (e.key === "Escape") closeLightbox();
+    if (e.key === "ArrowLeft") stepLightbox(-1);
+    if (e.key === "ArrowRight") stepLightbox(1);
+  });
+
+  // ===== фавориты =====
+  function updateFavCounter(){
+    const n = favoriteIds.size;
+    const el = document.getElementById("favCounter");
+    el.textContent = `👑 Фаворитов: ${n} из ${MAX_FAV}`;
+    el.classList.toggle("full", n === MAX_FAV);
+  }
+
+  function refreshAllFavButtons(){
+    document.querySelectorAll(".tile").forEach(card=>{
+      const id = card.dataset.id;
+      const isFav = favoriteIds.has(id);
+      card.classList.toggle("favorite", isFav);
+
+      const btn = card.querySelector(".fav-btn");
+      btn.classList.toggle("active", isFav);
+      btn.querySelector(".fav-text").textContent = isFav ? "В фаворитах" : "Мой фаворит";
+
+      const markEl = card.querySelector("[data-fav-mark]");
+      markEl.textContent = isFav ? "👑 ФАВОРИТ" : "";
+
+      if (!isFav && favoriteIds.size >= MAX_FAV){
+        btn.disabled = true;
+        btn.title = `Можно выбрать не более ${MAX_FAV} фаворитов`;
+      } else {
+        btn.disabled = false;
+        btn.title = "Отметить как фаворит";
+      }
+    });
+  }
+
+  function toggleFavorite(id){
+    if (favoriteIds.has(id)){
+      favoriteIds.delete(id);
+    } else {
+      if (favoriteIds.size >= MAX_FAV){
+        showToast(`Можно выбрать не более ${MAX_FAV} фаворитов. Снимите корону с другого варианта.`);
+        return;
+      }
+      favoriteIds.add(id);
+    }
+    refreshAllFavButtons();
+    updateFavCounter();
+    updateProgress();
+  }
+
+  // ===== карточка =====
+  function makeTile(tile){
+    const el = document.createElement("div");
+    el.className = "tile";
+    el.dataset.id = tile.id;
+
+    const imgs = imageList(tile);
+    const first = imgs[0] || "";
+    const link = tile.link || "";
+
+    let imgHtml;
+    if (first){
+      imgHtml = `<img src="${escapeHtml(first)}" alt="${escapeHtml(tile.name)}" loading="lazy">` +
+                (imgs.length > 1 ? `<span class="photo-count">${imgs.length} фото</span>` : "");
+    } else if (link){
+      imgHtml = `<span class="noimg" style="color:var(--muted)">[ссылка на фото]</span>`;
+    } else {
+      imgHtml = `<span class="noimg">[нет фото]</span>`;
+    }
+
+    el.innerHTML = `
+      <div class="tile-label">
+        <span class="tname" title="${escapeHtml(tile.name)}">${escapeHtml(tile.name)}</span>
+        <span class="fav-mark" data-fav-mark></span>
+      </div>
+      <div class="tile-image${(first||link)?'':' nolink'}" data-zoom>${imgHtml}</div>
+      ${link ? `<a class="gallery-link" href="${escapeHtml(link)}" target="_blank" rel="noopener">все фото ↗</a>` : ``}
+
+      <button class="fav-btn" data-fav type="button" title="Отметить как фаворит">
+        <span class="crown">👑</span>
+        <span class="fav-text">Мой фаворит</span>
+      </button>
+
+      <div class="q-block">
+        <div class="q-head">
+          <span class="q-title">Для розницы</span>
+          <span class="q-hint">1 — плохо, 5 — отлично</span>
+        </div>
+        <div class="scale" data-type="retail">
+          ${[1,2,3,4,5].map(n=>`
+            <button type="button" data-v="${n}" title="${LABELS[n]}">
+              <span class="num">${n}</span>
+              <span class="lbl">${LABELS[n]}</span>
+            </button>
+          `).join("")}
+        </div>
+      </div>
+
+      <div class="q-block">
+        <div class="q-head">
+          <span class="q-title">Для ОПТа</span>
+          <span class="q-hint">1 — плохо, 5 — отлично</span>
+        </div>
+        <div class="scale" data-type="opt">
+          ${[1,2,3,4,5].map(n=>`
+            <button type="button" data-v="${n}" title="${LABELS[n]}">
+              <span class="num">${n}</span>
+              <span class="lbl">${LABELS[n]}</span>
+            </button>
+          `).join("")}
+        </div>
+      </div>
+    `;
+
+    const zoomEl = el.querySelector("[data-zoom]");
+    if (imgs.length || link){
+      zoomEl.addEventListener("click", ()=>{
+        if (imgs.length) openLightbox(imgs, tile.name + " — " + tile.collection, link);
+        else window.open(link, "_blank", "noopener");
+      });
+    }
+
+    el.querySelector("[data-fav]").addEventListener("click", ()=>{
+      toggleFavorite(tile.id);
+    });
+
+    el.querySelectorAll(".scale").forEach(scaleEl=>{
+      const type = scaleEl.dataset.type;
+      scaleEl.addEventListener("click", e=>{
+        const btn = e.target.closest("button[data-v]");
+        if(!btn) return;
+        scaleEl.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+        votes[tile.id][type] = Number(btn.dataset.v);
+        updateTileDone(el, tile.id);
+        updateProgress();
+      });
+    });
+
+    return el;
+  }
+
+  function updateTileDone(el, id){
+    const v = votes[id];
+    el.classList.toggle("complete", v.retail !== null && v.opt !== null);
+  }
+
+  function updateProgress(){
+    const total = TILES.length;
+    const done = Object.values(votes).filter(v => v.retail !== null && v.opt !== null).length;
+    document.getElementById("progress").textContent = `Оценено: ${done} из ${total}`;
+    document.getElementById("submit").disabled = done === 0 && favoriteIds.size === 0;
+  }
+
+  // ===== рендер: раздел → коллекция → варианты =====
+  function render(filter){
+    const root = document.getElementById("form");
+    root.innerHTML = "";
+    const q = (filter || "").trim().toLowerCase();
+
+    const brandOrder = [];
+    const brandMap = new Map();
+    TILES.forEach(t=>{
+      if (q){
+        const hay = (t.name + " " + t.brand + " " + (t.collection||"") + " " + (t.image||"")).toLowerCase();
+        if (hay.indexOf(q) === -1) return;
+      }
+      if(!brandMap.has(t.brand)){ brandMap.set(t.brand, []); brandOrder.push(t.brand); }
+      brandMap.get(t.brand).push(t);
+    });
+
+    if (!brandOrder.length){
+      root.innerHTML = `<p style="text-align:center;color:var(--muted);padding:40px 0">Ничего не найдено.</p>`;
+      return;
+    }
+
+    brandOrder.forEach(brand=>{
+      const section = document.createElement("section");
+      section.className = "brand";
+      section.innerHTML = `<h2>${escapeHtml(brand)}</h2>`;
+
+      const list = brandMap.get(brand);
+      const collOrder = [];
+      const collMap = new Map();
+      list.forEach(t=>{
+        const c = t.collection || "Без коллекции";
+        if(!collMap.has(c)){ collMap.set(c, []); collOrder.push(c); }
+        collMap.get(c).push(t);
+      });
+
+      collOrder.forEach(coll=>{
+        const wrap = document.createElement("div");
+        wrap.className = "collection";
+        const items = collMap.get(coll);
+        wrap.innerHTML = `<h3>${escapeHtml(coll)} <span style="color:var(--muted);font-weight:400">· ${items.length}</span></h3>`;
+        const grid = document.createElement("div");
+        grid.className = "grid";
+        items.forEach(t=> grid.appendChild(makeTile(t)));
+        wrap.appendChild(grid);
+        section.appendChild(wrap);
+      });
+
+      root.appendChild(section);
+    });
+
+    refreshAllFavButtons();
+  }
+
+  function escapeHtml(s){
+    return String(s==null?"":s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+  }
+
+  function plural(n, forms){
+    const a = Math.abs(n) % 100;
+    const b = a % 10;
+    if (a > 10 && a < 20) return forms[2];
+    if (b > 1 && b < 5) return forms[1];
+    if (b === 1) return forms[0];
+    return forms[2];
+  }
+
+  // ===== фильтры =====
+  const brands = [];
+  TILES.forEach(t=>{ if (brands.indexOf(t.brand) === -1) brands.push(t.brand); });
+  const chipRow = document.getElementById("brandChips");
+  const allChip = document.createElement("button");
+  allChip.className = "chip active";
+  allChip.textContent = "Все разделы";
+  chipRow.appendChild(allChip);
+  brands.forEach(b=>{
+    const c = document.createElement("button");
+    c.className = "chip";
+    c.textContent = b;
+    chipRow.appendChild(c);
+  });
+  let activeBrand = "";
+  chipRow.addEventListener("click", e=>{
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    chipRow.querySelectorAll(".chip").forEach(c=>c.classList.remove("active"));
+    chip.classList.add("active");
+    activeBrand = (chip === allChip) ? "" : chip.textContent;
+    applyFilter();
+  });
+
+  let searchTerm = "";
+  document.getElementById("search").addEventListener("input", e=>{
+    searchTerm = e.target.value;
+    applyFilter();
+  });
+
+  function applyFilter(){
+    if (activeBrand){
+      const root = document.getElementById("form");
+      root.innerHTML = "";
+      const list = TILES.filter(t=> t.brand === activeBrand &&
+        (!searchTerm.trim() || (t.name+" "+(t.collection||"")).toLowerCase().indexOf(searchTerm.trim().toLowerCase()) !== -1));
+      const section = document.createElement("section");
+      section.className = "brand";
+      section.innerHTML = `<h2>${escapeHtml(activeBrand)}</h2>`;
+      const collOrder = []; const collMap = new Map();
+      list.forEach(t=>{
+        const c = t.collection || "Без коллекции";
+        if(!collMap.has(c)){ collMap.set(c, []); collOrder.push(c); }
+        collMap.get(c).push(t);
+      });
+      collOrder.forEach(coll=>{
+        const wrap = document.createElement("div");
+        wrap.className = "collection";
+        const items = collMap.get(coll);
+        wrap.innerHTML = `<h3>${escapeHtml(coll)} <span style="color:var(--muted);font-weight:400">· ${items.length}</span></h3>`;
+        const grid = document.createElement("div");
+        grid.className = "grid";
+        items.forEach(t=> grid.appendChild(makeTile(t)));
+        wrap.appendChild(grid);
+        section.appendChild(wrap);
+      });
+      if (!list.length) section.innerHTML += `<p style="color:var(--muted)">Ничего не найдено.</p>`;
+      root.appendChild(section);
+      refreshAllFavButtons();
+    } else {
+      render(searchTerm);
+    }
+  }
+
+  // ===== отправка =====
+  document.getElementById("submit").addEventListener("click", async ()=>{
+    const btn = document.getElementById("submit");
+    btn.disabled = true;
+    btn.textContent = "Отправляем…";
+
+    const payloadVotes = [];
+    const payloadTiles = {};
+    const favoritesArr = Array.from(favoriteIds);
+    let doneCount = 0;
+
+    Object.keys(votes).forEach(id=>{
+      const v = votes[id];
+      const isFav = favoriteIds.has(id);
+      if (v.retail === null && v.opt === null && !isFav) return;
+      if (v.retail !== null && v.opt !== null) doneCount++;
+      payloadVotes.push({ id, retail: v.retail, opt: v.opt, favorite: isFav });
+      const t = TILES.find(x=>x.id === id);
+      if (t) payloadTiles[id] = { name: t.name, brand: t.brand, collection: t.collection };
+    });
+
+    const body = JSON.stringify({
+      votes: payloadVotes,
+      favorites: favoritesArr,
+      tiles: payloadTiles,
+      ts: new Date().toISOString()
+    });
+
+    // отправляем через sendBeacon (не ждёт ответа, не бывает CORS-ошибок)
+    let sent = false;
+    try {
+      const blob = new Blob([body], { type: "text/plain;charset=utf-8" });
+      sent = navigator.sendBeacon(SCRIPT_URL, blob);
+    } catch (e) {
+      sent = false;
+    }
+
+    // резервный путь — fetch в режиме no-cors
+    if (!sent) {
+      try {
+        await fetch(SCRIPT_URL, { method:"POST", mode:"no-cors", body }).catch(()=>{});
+      } catch (e) { /* ничего */ }
+    }
+
+    document.getElementById("successText").textContent =
+      `Вы оценили ${doneCount} ${plural(doneCount, ["вариант","варианта","вариантов"])} ` +
+      `и выбрали ${favoritesArr.length} ${plural(favoritesArr.length, ["фаворит","фаворита","фаворитов"])}. Спасибо!`;
+    document.getElementById("successOverlay").classList.add("show");
+
+    btn.textContent = "Отправить";
+    btn.disabled = false;
+  });
+
+  document.getElementById("successClose").addEventListener("click", ()=>{
+    document.getElementById("successOverlay").classList.remove("show");
+  });
+
+  render();
+  updateFavCounter();
+  updateProgress();
+})();
+</script>
+</body>
+</html>
