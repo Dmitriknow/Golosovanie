@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gresse — результаты голосования</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#fff; --border:#e3e6ea; --text:#1a1f27; --muted:#67707a;
+    --accent:#1565C0; --ok:#2E7D32; --gold:#F9A825; --gold-soft:#FFF8D6;
+    --retail:#1565C0; --opt:#00897B;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:0 16px 60px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+    background:var(--bg); color:var(--text);
+  }
+  header{max-width:1100px;margin:0 auto;padding:26px 0 6px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px}
+  header h1{margin:0;font-size:22px}
+  .sub{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px}
+  .sub button{
+    padding:8px 16px;border:0;border-radius:8px;background:var(--accent);color:#fff;
+    font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;
+  }
+  .sub button:hover{background:#0d47a1}
+
+  .kpis{
+    max-width:1100px;margin:18px auto 0;display:grid;gap:12px;
+    grid-template-columns:repeat(6,1fr);
+  }
+  @media(max-width:900px){.kpis{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{
+    background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:14px 16px;display:flex;flex-direction:column;gap:4px;
+  }
+  .kpi .k-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .kpi .k-value{font-size:26px;font-weight:700;line-height:1}
+  .kpi .k-sub{font-size:12px;color:var(--muted)}
+  .kpi.hl{border-color:var(--gold);background:var(--gold-soft)}
+  .kpi.hl .k-value{color:#7a5a00}
+
+  .toolbar{
+    max-width:1100px;margin:20px auto 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+  }
+  .chip-row{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{
+    padding:7px 14px;border-radius:20px;cursor:pointer;border:1.5px solid var(--border);
+    background:#fff;font-family:inherit;font-size:13px;font-weight:600;color:var(--text);
+  }
+  .chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .metric-toggle{display:flex;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;background:#fff}
+  .metric-toggle button{
+    padding:8px 14px;border:0;background:transparent;font-family:inherit;font-size:13px;
+    font-weight:600;cursor:pointer;color:var(--muted);
+  }
+  .metric-toggle button.active{color:#fff}
+  .metric-toggle button[data-m="retail"].active{background:var(--retail)}
+  .metric-toggle button[data-m="opt"].active{background:var(--opt)}
+  .metric-toggle button[data-m="favs"].active{background:var(--gold);color:#3a2400}
+  .toolbar input[type=search]{
+    flex:1;min-width:180px;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;
+    font-family:inherit;font-size:14px;background:#fff;
+  }
+
+  .panel{
+    max-width:1100px;margin:16px auto 0;background:var(--card);border:1px solid var(--border);
+    border-radius:14px;padding:18px 20px;
+  }
+  .panel h2{margin:0 0 12px;font-size:16px}
+
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--border);vertical-align:middle}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);cursor:pointer;user-select:none;white-space:nowrap}
+  th:hover{color:var(--text)}
+  th.sorted{color:var(--accent)}
+  td.num,th.num{text-align:right}
+  tr:last-child td{border-bottom:0}
+  .pos{color:var(--muted);font-weight:700;width:34px}
+  .pos.top{color:var(--gold)}
+  .tname{font-weight:600}
+  .tmeta{color:var(--muted);font-size:11px}
+  .bar{
+    display:inline-block;height:8px;border-radius:4px;vertical-align:middle;
+    background:var(--accent);min-width:2px;
+  }
+  .bar.opt{background:var(--opt)}
+  .bar.favs{background:var(--gold)}
+  .val{font-weight:700;display:inline-block;min-width:34px;text-align:right}
+  .fav-pill{color:#7a5a00;font-weight:600}
+
+  .two-col{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:720px){.two-col{grid-template-columns:1fr}}
+
+  .fav-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .fav-row .fn{width:150px;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fav-row .fmeta{color:var(--muted);font-size:10px}
+  .fav-track{flex:1;background:#f0f2f5;border-radius:6px;height:20px;position:relative;overflow:hidden}
+  .fav-fill{position:absolute;left:0;top:0;bottom:0;background:var(--gold);border-radius:6px}
+  .fav-count{width:28px;text-align:right;font-weight:700;font-size:13px}
+
+  .dist-block{margin-bottom:14px}
+  .dist-block h3{margin:0 0 8px;font-size:13px;color:var(--muted)}
+  .dist-row{display:flex;align-items:center;gap:10px;margin-bottom:5px}
+  .dist-num{width:18px;font-weight:700;font-size:12px;text-align:right}
+  .dist-track{flex:1;background:#f0f2f5;border-radius:5px;height:16px;overflow:hidden}
+  .dist-fill{height:100%;border-radius:5px}
+  .dist-count{width:34px;font-size:12px;color:var(--muted);text-align:right}
+
+  .empty{text-align:center;color:var(--muted);padding:30px 0}
+  .loading{text-align:center;color:var(--muted);padding:24px 0}
+  .err{text-align:center;color:#b00;padding:24px 0}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Новинки Gresse — результаты</h1>
+  <div class="sub">
+    <span id="generated"></span>
+    <button id="refresh">Обновить</button>
+  </div>
+</header>
+
+<section class="kpis" id="kpis"></section>
+
+<div class="toolbar">
+  <div class="chip-row" id="brandChips"></div>
+  <div class="metric-toggle" id="metricToggle"></div>
+  <input type="search" id="search" placeholder="Поиск по артикулу, коллекции…">
+</div>
+
+<section class="panel">
+  <h2>Рейтинг артикулов</h2>
+  <div class="table-wrap">
+    <table id="ranking">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Артикул</th>
+          <th class="num sorted" data-sort="score">Ср. оценка</th>
+          <th class="num" data-sort="votes">Голосов</th>
+          <th class="num" data-sort="favs">Фаворитов</th>
+        </tr>
+      </thead>
+      <tbody id="rankingBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<div class="two-col">
+  <section class="panel">
+    <h2>Топ фаворитов</h2>
+    <div id="favs"></div>
+  </section>
+  <section class="panel">
+    <h2>Распределение оценок</h2>
+    <div id="dist"></div>
+  </section>
+</div>
+
+<script>
+  var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzI_egKZHMGIzZPglZBpeAfDPKcr4k44ukUet0O6V5rX_Ynb0eA3UxkgbHob494xwU0/exec";
+
+  var state = {
+    data: null,
+    metric: "retail",   // retail | opt | favs
+    brand: "",
+    search: "",
+    sortKey: "score",
+    sortDir: -1
+  };
+
+  var METRIC_LABEL = { retail: "Розница", opt: "Опт", favs: "Фавориты" };
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];}); }
+
+  function fmt(n){ return (n===null||n===undefined) ? "—" : (Math.round(n*10)/10).toLocaleString("ru-RU"); }
+
+  function fetchResults(){
+    document.getElementById("rankingBody").innerHTML = '<tr><td colspan="5" class="loading">Загрузка…</td></tr>';
+    fetch(SCRIPT_URL + "?action=results", { method:"GET", mode:"cors" })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if (!j || !Array.isArray(j.tiles)) {
+          throw new Error("Скрипт не отдаёт данные — обновите версию Apps Script (action=results)");
+        }
+        state.data = j;
+        render();
+      })
+      .catch(function(e){
+        document.getElementById("rankingBody").innerHTML =
+          '<tr><td colspan="5" class="err">Не удалось загрузить данные: ' + esc(e.message) + '</td></tr>';
+      });
+  }
+
+  function render(){
+    var d = state.data;
+    document.getElementById("generated").textContent = "Обновлено: " + new Date(d.generated).toLocaleString("ru-RU");
+    renderKpis();
+    renderChips();
+    renderMetricToggle();
+    renderTable();
+    renderFavs();
+    renderDist();
+  }
+
+  function renderKpis(){
+    var s = d.stats;
+    var leader = d.tiles[0] || null;
+    var cards = [
+      { label:"Ответов", value:String(s.respondents), sub:"респондентов" },
+      { label:"Оценок", value:String(s.ratings), sub:"розница + опт" },
+      { label:"Ср. розница", value:fmt(s.avgRetail), sub:"из 5", hl:false },
+      { label:"Ср. опт", value:fmt(s.avgOpt), sub:"из 5", hl:false },
+      { label:"Фаворитов", value:String(s.favorites), sub:"отметок" },
+      { label:"Лидер", value: leader ? esc(leader.name) : "—", sub: leader ? (leader.brand + " · " + fmt(leader.avgRetail)) : "", hl:true }
+    ];
+    document.getElementById("kpis").innerHTML = cards.map(function(c){
+      var sub = c.sub ? '<span class="k-sub">' + esc(c.sub) + '</span>' : "";
+      return '<div class="kpi' + (c.hl?' hl':'') + '"><span class="k-label">' + esc(c.label) +
+             '</span><span class="k-value">' + esc(c.value) + '</span>' + sub + '</div>';
+    }).join("");
+  }
+
+  function renderChips(){
+    var brands = ["Все"].concat((d.brands||[]).map(function(b){return b.name;}));
+    var html = brands.map(function(b){
+      var active = (state.brand === (b==="Все"?"":b));
+      return '<button class="chip'+(active?' active':'')+'" data-b="'+(b==="Все"?"":esc(b))+'">'+esc(b)+'</button>';
+    }).join("");
+    document.getElementById("brandChips").innerHTML = html;
+  }
+
+  function renderMetricToggle(){
+    var html = ["retail","opt","favs"].map(function(m){
+      return '<button data-m="'+m+'" class="'+(state.metric===m?'active':'')+'">'+METRIC_LABEL[m]+'</button>';
+    }).join("");
+    document.getElementById("metricToggle").innerHTML = html;
+  }
+
+  function scoreOf(t){
+    if (state.metric === "opt") return t.avgOpt;
+    if (state.metric === "favs") return t.favs;
+    return t.avgRetail;
+  }
+
+  function visibleTiles(){
+    var q = state.search.trim().toLowerCase();
+    var list = (d.tiles||[]).filter(function(t){
+      if (state.brand && t.brand !== state.brand) return false;
+      if (q){
+        var hay = (t.name + " " + (t.collection||"") + " " + t.brand).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+    list.sort(function(a,b){
+      var av, bv;
+      if (state.sortKey === "score"){ av = scoreOf(a); bv = scoreOf(b); }
+      else if (state.sortKey === "votes"){ av = a.votes; bv = b.votes; }
+      else { av = a.favs; bv = b.favs; }
+      if (av === null || av === undefined) av = -1;
+      if (bv === null || bv === undefined) bv = -1;
+      if (av !== bv) return (av < bv ? 1 : -1) * (state.sortDir === -1 ? 1 : -1);
+      return a.name < b.name ? -1 : 1;
+    });
+    return list;
+  }
+
+  function renderTable(){
+    var list = visibleTiles();
+    var maxScore = 0, maxFavs = 1;
+    list.forEach(function(t){
+      var sc = scoreOf(t);
+      if (sc !== null && sc !== undefined && sc > maxScore) maxScore = sc;
+      if (t.favs > maxFavs) maxFavs = t.favs;
+    });
+    if (state.metric === "favs") maxScore = maxFavs || 1;
+    if (maxScore === 0) maxScore = 1;
+
+    var body = document.getElementById("rankingBody");
+    if (!list.length){
+      body.innerHTML = '<tr><td colspan="5" class="empty">Нет данных по выбранному фильтру.</td></tr>';
+      return;
+    }
+    body.innerHTML = list.map(function(t, i){
+      var sc = scoreOf(t);
+      var barCls = state.metric === "opt" ? "bar opt" : (state.metric === "favs" ? "bar favs" : "bar");
+      var pct = (sc === null || sc === undefined) ? 0 : Math.round(sc / maxScore * 100);
+      var scTxt = fmt(sc);
+      if (state.metric === "favs") scTxt = String(t.favs);
+      return '<tr>' +
+        '<td class="pos'+(i<3?' top':'')+'">' + (i+1) + '</td>' +
+        '<td><div class="tname">' + esc(t.name) + '</div>' +
+            '<div class="tmeta">' + esc(t.brand) + ' · ' + esc(t.collection||"") + '</div></td>' +
+        '<td class="num"><span class="val">' + scTxt + '</span> ' +
+            '<span class="'+barCls+'" style="width:' + pct + '%"></span></td>' +
+        '<td class="num">' + t.votes + '</td>' +
+        '<td class="num">' + (t.favs ? '<span class="fav-pill">'+t.favs+'</span>' : '0') + '</td>' +
+      '</tr>';
+    }).join("");
+  }
+
+  function renderFavs(){
+    var list = (d.tiles||[]).slice().filter(function(t){return t.favs>0;})
+      .sort(function(a,b){return b.favs - a.favs;}).slice(0,10);
+    var el = document.getElementById("favs");
+    if (!list.length){
+      el.innerHTML = '<div class="empty">Пока нет фаворитов.</div>';
+      return;
+    }
+    var max = list[0].favs || 1;
+    el.innerHTML = list.map(function(t){
+      return '<div class="fav-row">' +
+        '<div class="fn">' + esc(t.name) + '<div class="fmeta">' + esc(t.brand) + '</div></div>' +
+        '<div class="fav-track"><div class="fav-fill" style="width:' + Math.round(t.favs/max*100) + '%"></div></div>' +
+        '<div class="fav-count">' + t.favs + '</div>' +
+      '</div>';
+    }).join("");
+  }
+
+  function distRows(obj, color){
+    if (!obj || !Object.keys(obj).length){
+      return '<div class="empty">Нет оценок.</div>';
+    }
+    var max = 0, i;
+    for (i = 1; i <= 5; i++){ if ((obj[i]||0) > max) max = obj[i]||0; }
+    if (max === 0) max = 1;
+    var out = "";
+    for (i = 1; i <= 5; i++){
+      var n = obj[i] || 0;
+      out += '<div class="dist-row"><span class="dist-num">'+i+'</span>' +
+        '<div class="dist-track"><div class="dist-fill" style="width:'+Math.round(n/max*100)+'%;background:'+color+'"></div></div>' +
+        '<span class="dist-count">'+n+'</span></div>';
+    }
+    return out;
+  }
+
+  function renderDist(){
+    var el = document.getElementById("dist");
+    el.innerHTML =
+      '<div class="dist-block"><h3>Розница</h3>' + distRows(d.dist.retail, "#1565C0") + '</div>' +
+      '<div class="dist-block"><h3>Опт</h3>' + distRows(d.dist.opt, "#00897B") + '</div>';
+  }
+
+  // ==== события ====
+  document.getElementById("refresh").addEventListener("click", fetchResults);
+
+  document.getElementById("brandChips").addEventListener("click", function(e){
+    var chip = e.target.closest(".chip");
+    if (!chip) return;
+    state.brand = chip.getAttribute("data-b");
+    render();
+  });
+
+  document.getElementById("metricToggle").addEventListener("click", function(e){
+    var b = e.target.closest("button[data-m]");
+    if (!b) return;
+    state.metric = b.getAttribute("data-m");
+    state.sortKey = "score";
+    state.sortDir = -1;
+    render();
+  });
+
+  document.getElementById("search").addEventListener("input", function(e){
+    state.search = e.target.value;
+    renderTable();
+  });
+
+  document.querySelector("#ranking thead").addEventListener("click", function(e){
+    var th = e.target.closest("th[data-sort]");
+    if (!th) return;
+    var key = th.getAttribute("data-sort");
+    if (state.sortKey === key){
+      state.sortDir = -state.sortDir;
+    } else {
+      state.sortKey = key;
+      state.sortDir = -1;
+    }
+    document.querySelectorAll("#ranking thead th").forEach(function(h){h.classList.remove("sorted");});
+    th.classList.add("sorted");
+    renderTable();
+  });
+
+  fetchResults();
+</script>
+</body>
+</html>
